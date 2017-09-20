@@ -20,6 +20,5 @@ console.log(chalk.yellow('Opening connection to MongoDB', DATABASE_URI));
 const db = mongoose.connect(DATABASE_URI, options);
 module.exports = db;
 
-
 const con = mongoose.connection;
 con.on('error', console.error.bind(console, 'mongodb connection error:'));
