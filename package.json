@@ -1,21 +1,22 @@
 {
-  "name": "eecs393proj",
+  "name": "redditrecomendationengine",
   "version": "1.0.0",
   "description": "",
   "main": "server/main.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node ./server/main",
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/JonathanLigh/EECS393Proj.git"
+    "url": "git+https://github.com/JonathanLigh/RedditRecomendationEngine.git"
   },
   "author": "Jonathan Ligh, Seva Luchianov, and Alex Feldman",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/JonathanLigh/EECS393Proj/issues"
+    "url": "https://github.com/JonathanLigh/RedditRecomendationEngine/issues"
   },
-  "homepage": "https://github.com/JonathanLigh/EECS393Proj#readme",
+  "homepage": "https://github.com/JonathanLigh/RedditRecomendationEngine#readme",
   "dependencies": {
     "babel": "^6.23.0",
     "babel-core": "^6.26.0",
