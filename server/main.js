@@ -20,7 +20,7 @@ const startServer = () => {
 startDb
   .then(createApplication)
   .then(startServer)
-  .catch(err => { //on error, print the stack and exit the process
-    process.error(chalk.red(err.stack));
+  .catch(err => { //on error, prints the error stack and exit the process
+    console.error(chalk.red(err.stack));
     process.exit(1);
   });
