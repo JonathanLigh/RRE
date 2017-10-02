@@ -1,34 +1,40 @@
 {
-  "name": "redditrecomendationengine",
-  "version": "1.0.0",
-  "description": "",
-  "main": "server/main.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node ./server/main"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/JonathanLigh/RedditRecomendationEngine.git"
-  },
-  "author": "Jonathan Ligh, Seva Luchianov, and Alex Feldman",
-  "license": "ISC",
-  "bugs": {
-    "url": "https://github.com/JonathanLigh/RedditRecomendationEngine/issues"
-  },
-  "homepage": "https://github.com/JonathanLigh/RedditRecomendationEngine#readme",
-  "dependencies": {
-    "babel": "^6.23.0",
-    "babel-core": "^6.26.0",
-    "body-parser": "^1.18.1",
-    "chai": "^4.1.2",
-    "chai-spies": "^0.7.1",
-    "chalk": "^2.1.0",
-    "eslint": "^4.7.1",
-    "express": "^4.15.4",
-    "mongodb": "^2.2.31",
-    "mongoose": "^4.11.12",
-    "path": "^0.12.7",
-    "volleyball": "^1.4.1"
-  }
+    "name": "redditrecomendationengine",
+    "version": "1.0.0",
+    "description": "",
+    "main": "server/main.js",
+    "scripts": {
+        "test": "echo \"Error: no test specified\" && exit 1",
+        "start": "node ./server/main"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/JonathanLigh/RedditRecomendationEngine.git"
+    },
+    "author": "Jonathan Ligh, Seva Luchianov, and Alex Feldman",
+    "license": "ISC",
+    "bugs": {
+        "url": "https://github.com/JonathanLigh/RedditRecomendationEngine/issues"
+    },
+    "homepage": "https://github.com/JonathanLigh/RedditRecomendationEngine#readme",
+    "dependencies": {
+        "babel": "^6.23.0",
+        "babel-core": "^6.26.0",
+        "body-parser": "^1.18.1",
+        "chai": "^4.1.2",
+        "chai-spies": "^0.7.1",
+        "chalk": "^2.1.0",
+        "eslint": "^4.7.1",
+        "express": "^4.15.4",
+        "mongodb": "^2.2.31",
+        "mongoose": "^4.11.12",
+        "path": "^0.12.7",
+        "volleyball": "^1.4.1",
+        "make-runnable": "^1.3.6",
+        "xhr": "^2.4.0",
+        "http": "^0.0.0"
+    },
+    "browser": {
+        "request": "xhr"
+    }
 }
