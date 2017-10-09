@@ -2,6 +2,8 @@ const mongoose = require('mongoose');
 const chalk = require('chalk');
 const Subreddit = require('./index').Subreddit;
 
+
+//note to future self: use a sigmoid on the entirety of the weights
 //takes an array of objectid references of subreddits
 const genCorrelationValue = (collection) => {
   let subreddits = getSubredditsFromIds(collection);
