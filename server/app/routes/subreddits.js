@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const models = require('../../db/models');
+const Subreddit = models.Subreddit;
 
 /*
 this function finds the corresponding account object
