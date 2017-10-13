@@ -23,9 +23,9 @@ router.get('/', function (req, res, next) {
   .catch(next);
 });
 
-router.get('/byName/:tagName', function (req, res, next) {
+router.get('/name/:tagName', function (req, res, next) {
   Tag.findOne({
-    name: req.tagName
+    name: req.params.tagName
   }).exec()
   .then(tag => res.json(tag))
   .catch(next);

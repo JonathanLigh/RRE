@@ -23,6 +23,17 @@ router.get('/', function (req, res, next) {
   .catch(next);
 });
 
+//find relations that contain a specific subRedditId
+router.get('/relationswith/:subRedditId', function (req, res, next) {
+  Relation.find({
+    "_subreddits": {
+      "$regex": req.params.subRedditId,
+      "$options": "i" }
+    })
+  .then(relations => res.json(relations))
+  .catch(next);
+});
+
 router.get('/:relationId', /*add access checking functions here*/ function (req, res, next){
   const status = (req.requestedRelation) ? 200 : 404;
     res.status(status).json(req.requestedRelation);
