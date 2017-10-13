@@ -18,7 +18,7 @@ router.param('subredditId', function(req, res, next, id) {
 });
 
 router.get('/', function (req, res, next) {
-  Subreddit.findAll()
+  Subreddit.find({})
   .then(subreddits => res.json(subreddits))
   .catch(next);
 });

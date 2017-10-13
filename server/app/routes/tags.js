@@ -8,9 +8,9 @@ this function finds the corresponding account object
 and sets it to the requestedAccount variable on req
 */
 router.param('tagId', function(req, res, next, id) {
-    Tag.findById(id)
+    Tag.findOne({_id: id}).exec()
         .then(tag => {
-            req.requeste Tag = tag;
+            req.requestedTag = tag;
             next();
             return null; //silences a bluebird warning about promises inside of next
         })
@@ -18,14 +18,22 @@ router.param('tagId', function(req, res, next, id) {
 });
 
 router.get('/', function (req, res, next) {
-  Tag.findAll()
+  Tag.find({}).exec()
   .then(tags => res.json(tags))
   .catch(next);
 });
 
+router.get('/byName/:tagName', function (req, res, next) {
+  Tag.findOne({
+    name: req.tagName
+  }).exec()
+  .then(tag => res.json(tag))
+  .catch(next);
+})
+
 router.get('/:tagId', /*add access checking functions here*/ function (req, res, next){
-  const status = (req.requeste Tag) ? 200 : 404;
-    res.status(status).json(req.requeste Tag);
+  const status = (req.requestedTag) ? 200 : 404;
+    res.status(status).json(req.requestedTag);
 });
 
 router.post('/', /*add access checking functions here*/ function (req, res, next) {
@@ -38,8 +46,8 @@ router.post('/', /*add access checking functions here*/ function (req, res, next
 });
 
 router.put('/:tagId', /*add access checking functions here*/ function (req, res, next){
-  if (req.requeste Tag) {
-    req.requeste Tag.update(req.body)
+  if (req.requestedTag) {
+    req.requestedTag.update(req.body)
   .then(() => {
     res.status(202);
     res.json();
@@ -51,8 +59,8 @@ router.put('/:tagId', /*add access checking functions here*/ function (req, res,
 });
 
 router.delete('/:tagId', /*add access checking functions here*/ function (req, res, next) {
-  if (req.requeste Tag) {
-    req.requeste Tag.remove()
+  if (req.requestedTag) {
+    req.requestedTag.remove()
     .then(() => res.status(204).end())
     .catch(next);
   } else {

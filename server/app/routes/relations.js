@@ -18,7 +18,7 @@ router.param('relationId', function(req, res, next, id) {
 });
 
 router.get('/', function (req, res, next) {
-  Relation.findAll()
+  Relation.find({})
   .then(relations => res.json(relations))
   .catch(next);
 });

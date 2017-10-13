@@ -1,6 +1,6 @@
 const Relation = require('./relation');
-const Subreddit = require('./Subreddit');
-const Tag = require('./Tag');
+const Subreddit = require('./subreddit');
+const Tag = require('./tag');
 
 module.exports = {
   Relation: Relation,
