@@ -1,10 +1,17 @@
 var https = require('https');
-var fs = require('fs');
+var fileSystem = require('fs');
+var onExit = require('signal-exit');
+var exitHook = require('exit-hook');
 
-var batchSize = 10;
-var state;
+var batchSize = 100;
+
+var statePath = "state.json";
+var state = {
+    after: ""
+};
 
 function getReddits(after) {
+    console.log("CURRENT STATE: " + state.after);
     return new Promise(function(resolve, reject) {
         function get_json(url, callback) {
             https.get(url, function(res) {
@@ -33,43 +40,38 @@ function getReddits(after) {
         }
 
         function parseSubreddit(subreddit) {
+            console.log("Scanning " + subreddit.url);
+
             var subredditData = {
+                name: subreddit.name,
                 url: subreddit.url,
                 genre: subreddit.audience_target,
                 total_subscribers: subreddit.subscribers,
-
+                description: subreddit.description
             }
 
-            // put parsed stuff in db
-            console.log(subredditData.url);
-
-            return subredditData;
+            var subredditPath = `./parsed_subreddits/${subreddit.name}.json`;
+            fileSystem.writeFileSync(subredditPath, JSON.stringify(subredditData));
+            state.after = after;
+            console.log("Finished " + subreddit.url);
         }
 
         get_json(buildURL(after, batchSize), function(response) {
-            var parsedData = {
-                parsedSubredditData: []
-            };
-
             var subreddit;
             for (subreddit in response.data.children) {
-                parsedData.parsedSubredditData.push(
-                    parseSubreddit(
-                        response.data.children[subreddit].data
-                    )
-                );
+                parseSubreddit(response.data.children[subreddit].data);
             }
-            parsedData.after = response.data.after;
-            resolve(parsedData);
+
+            resolve(response.data.after);
         });
     });
 }
 
 function continueSearch(after) {
     getReddits(after).then(
-        function(parsedData) {
+        function(after) {
             setTimeout(function() {
-                continueSearch(parsedData.after)
+                continueSearch(after)
             }, 1000);
         },
         function(error) {
@@ -77,14 +79,32 @@ function continueSearch(after) {
         });
 }
 
+function loadStateJSON(callback) {
+    fileSystem.readFile(statePath, (err, data) => {
+        if (err) {
+            console.log("state.json file not initialized");
+        } else {
+            if (data.byteLength === 0) {
+                console.log("state.json file is empty");
+            } else {
+                state = JSON.parse(data);
+            }
+        }
+        callback(state.after);
+    });
+}
+
+exitHook(function() {
+    console.log("Exit hook caught");
+    fileSystem.writeFileSync(statePath, JSON.stringify(state));
+    console.log("Crawler terminated, current state saved as " + state.after);
+});
+
 module.exports = {
     crawl: function() {
-        fs.readFile('state.json', (err, data) => {
-            if (err) {
-                throw err;
-            }
-            state = JSON.parse(data);
-            continueSearch();
+        loadStateJSON(function(after) {
+            console.log("Resuming search from last saved state: " + state.after);
+            continueSearch(after)
         });
     }
 };

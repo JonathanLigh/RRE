@@ -1,2 +1,4 @@
 node_modules
 /bin/
+/server/crawler/parsed_subreddits/
+/server/crawler/state.json
