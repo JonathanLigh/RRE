@@ -13,8 +13,6 @@ var state = {
     maxDepthSubreddit: ""
 };
 
-var updateOnExit = false;
-
 function getReddits(after) {
     return new Promise(function(resolve, reject) {
         function get_json(url, callback) {
@@ -52,9 +50,9 @@ function getReddits(after) {
             var fileName = regex.getNameFromURL(subreddit.url)
             if (fileSystem.existsSync(`./parsed_subreddits/${fileName}.json`)) {
                 subredditData = JSON.parse(fileSystem.readFileSync(`./parsed_subreddits/${fileName}.json`));
-                console.log(`Updating ${subreddit.url}...`);
+                console.log(`Discovered ${subreddit.url}`);
             } else {
-                console.log(`Discovered ${subreddit.url}!`);
+                console.log(`Discovered New ${subreddit.url}`);
                 subredditData = {
                     tags: []
                 }
@@ -79,7 +77,7 @@ function getReddits(after) {
             writeSubreddit(fileName, subredditData);
 
             for (i in subredditData.relatedSubreddits) {
-                console.log("Recursively Updating Immediate Relation: " + subredditData.relatedSubreddits[i]);
+                console.log("Updating (" + i + "/" + subredditData.relatedSubreddits.length + "): " + subredditData.relatedSubreddits[i]);
                 propagateSubredditData(subredditData.relatedSubreddits[i], subredditData, 1, []);
             }
 
@@ -206,10 +204,9 @@ function loadStateJSON(callback) {
 }
 
 exitHook(function() {
-    if (updateOnExit) {
-        fileSystem.writeFileSync(statePath, JSON.stringify(state));
-        console.log("    Crawler terminated, current state saved as " + state.after);
-    }
+    fileSystem.writeFileSync(statePath, JSON.stringify(state));
+    console.log("    Crawler terminated, current state saved as " + state.after);
+    process.exit(0);
 });
 
 module.exports = {
@@ -223,38 +220,12 @@ module.exports = {
         }
         batchSize = size;
         loadStateJSON(function(after) {
-            updateOnExit = true;
             console.log("Starting search from " + state.after);
             continueSearch(after)
         });
-    },
-    getAllTags: function() {
-        var tags = [];
-        var parsedSubreddits = fileSystem.readdirSync("./parsed_subreddits/");
-        var index;
-        for (index in parsedSubreddits) {
-            var subreddit = JSON.parse(fileSystem.readFileSync("./parsed_subreddits/" + parsedSubreddits[index]));
-            var i;
-            for (i in subreddit.tags) {
-                var tag = subreddit.tags[i];
-                if (tags.indexOf(tag) === -1) {
-                    tags.push(tag);
-                }
-            }
-        }
-        console.log("Total: " + tags.length);
-        console.log(tags);
-    },
-    getRankedSubredditsForTags: function() {
-        var parsedSubreddits = fileSystem.readdirSync("./parsed_subreddits/");
-        var index;
-        for (index in parsedSubreddits) {
-            var subreddit = JSON.parse(fileSystem.readFileSync("./parsed_subreddits/" + parsedSubreddits[index]));
-            if (subreddit.tags.indexOf(tag) !== -1) {
-                console.log(subreddit.url);
-            }
-        }
     }
 };
 
-require('make-runnable');
+require('make-runnable/custom')({
+    printOutputFrame: false
+});
