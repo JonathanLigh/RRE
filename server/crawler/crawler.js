@@ -48,19 +48,38 @@ function getReddits(after) {
         function parseSubreddit(subreddit) {
             console.log(`Scanning ${subreddit.url}`);
 
-            var subredditData = {
-                name: subreddit.name,
-                url: subreddit.url,
-                total_subscribers: subreddit.subscribers,
+            var subredditData;
+            var fileName = regex.getNameFromURL(subreddit.url)
+            if (fileSystem.existsSync(`./parsed_subreddits/${fileName}.json`)) {
+                subredditData = JSON.parse(fileSystem.readFileSync(`./parsed_subreddits/${fileName}.json`));
+            } else {
+                subredditData = {
+                    tags: []
+                }
             }
 
+            subredditData.url = subreddit.url;
+            subredditData.name = subreddit.name;
+            subredditData.total_subscribers = subreddit.subscribers;
+
             const csvMatcher = /\b[\w\s]+\b/gi;
-            subredditData.audienceTarget = regex.getListOfMatches(subreddit.audience_target, csvMatcher);
+            var tags = regex.getListOfMatches(subreddit.audience_target, csvMatcher);
+            var i;
+            for (i in tags) {
+                updateTags(subredditData, {
+                    tag: tags[i]
+                }, 0);
+            }
 
-            subredditData.mentionedSubreddits = descriptionParser.getMentionedSubreddits(subreddit);
+            subredditData.relatedSubreddits = descriptionParser.getMentionedSubreddits(subreddit);
 
-            var subredditPath = `./parsed_subreddits/${subreddit.name}.json`;
-            fileSystem.writeFileSync(subredditPath, JSON.stringify(subredditData));
+            writeSubreddit(fileName, subredditData);
+
+            for (i in subredditData.relatedSubreddits) {
+                //console.log("spreading tags to " + subredditData.relatedSubreddits[i]);
+                propagateSubredditData(subredditData.relatedSubreddits[i], subredditData, 1, []);
+            }
+
             console.log(`Finished ${subreddit.url}`);
         }
 
@@ -73,6 +92,80 @@ function getReddits(after) {
             resolve(response.data.after);
         });
     });
+}
+
+function writeSubreddit(fileName, subredditData) {
+    //console.log("writing " + fileName + " to file system");
+    var subredditPath = `./parsed_subreddits/${fileName}.json`;
+    fileSystem.writeFileSync(subredditPath, JSON.stringify(subredditData));
+}
+
+function propagateSubredditData(subredditURL, parentSubredditData, depth, searched) {
+    // This is really inefficient but that is because the db isnt ready yet
+
+    var fileName = regex.getNameFromURL(subredditURL);
+    // handle self reference
+    //console.log("Searching for " + depth);
+    if (searched.indexOf(fileName) !== -1) {
+        console.log("it caught " + fileName);
+        return;
+    }
+
+    var subredditData;
+    if (fileSystem.existsSync(`./parsed_subreddits/${fileName}.json`)) {
+        subredditData = JSON.parse(fileSystem.readFileSync(`./parsed_subreddits/${fileName}.json`));
+        //console.log("Found " + subredditData.url + " in file system");
+    } else {
+        subredditData = {
+            url: subredditURL,
+            tags: [],
+            relatedSubreddits: [parentSubredditData.url.replace(/^\/|\/$/g, '')]
+        };
+        //console.log("Going to create " + subredditURL + " in file system");
+    }
+    var updatedTags = false;
+    var i;
+    for (i in parentSubredditData.tags) {
+        updatedTags = updatedTags || updateTags(subredditData, parentSubredditData.tags[i], depth);
+    }
+    if (updatedTags) {
+        writeSubreddit(regex.getNameFromURL(subredditURL), subredditData);
+        if (!!subredditData.relatedSubreddits) {
+            console.log("spreading tags recursively");
+            for (i in subredditData.relatedSubreddits) {
+                // we want to update any possible tags that weren't originally referenced.
+                var nextFileName = regex.getNameFromURL(subredditData.relatedSubreddits[i]);
+                if (searched.indexOf(nextFileName) > -1) {
+                    searched.splice(index, 1);
+                }
+                propagateSubredditData(subredditData.relatedSubreddits[i], subredditData.tags, depth + 1, searched);
+            }
+        }
+    } else {
+        searched.push(fileName);
+    }
+}
+
+// Tags are {tag:"tagName", mentionDistance:X}
+function updateTags(subredditData, newTag, mentionDistance) {
+    var i;
+    for (i in subredditData.tags) {
+        var existingTag = subredditData.tags[i];
+        if (existingTag.tag === newTag.tag) {
+            if (existingTag.mentionDistance > mentionDistance) {
+                //console.log("updating closer mention: " + newTag.tag + ": " + mentionDistance);
+                existingTag.mentionDistance = mentionDistance;
+                return true;
+            }
+            return false;
+        }
+    }
+    //console.log("tag was not found, adding: " + newTag.tag + ": " + mentionDistance);
+    subredditData.tags.push({
+        tag: newTag.tag,
+        mentionDistance: mentionDistance
+    });
+    return true;
 }
 
 function continueSearch(after) {
@@ -119,29 +212,29 @@ module.exports = {
             continueSearch(after)
         });
     },
-    genres: function() {
-        var genres = [];
+    getAllTags: function() {
+        var tags = [];
         var parsedSubreddits = fileSystem.readdirSync("./parsed_subreddits/");
         var index;
         for (index in parsedSubreddits) {
             var subreddit = JSON.parse(fileSystem.readFileSync("./parsed_subreddits/" + parsedSubreddits[index]));
             var i;
-            for (i in subreddit.audienceTarget) {
-                var genre = subreddit.audienceTarget[i];
-                if (genres.indexOf(genre) === -1) {
-                    genres.push(genre);
+            for (i in subreddit.tags) {
+                var tag = subreddit.tags[i];
+                if (tags.indexOf(tag) === -1) {
+                    tags.push(tag);
                 }
             }
         }
-        console.log("Total: " + genres.length);
-        console.log(genres);
+        console.log("Total: " + tags.length);
+        console.log(tags);
     },
-    getSubredditForGenre: function(genre) {
+    getSubredditForTag: function(tag) {
         var parsedSubreddits = fileSystem.readdirSync("./parsed_subreddits/");
         var index;
         for (index in parsedSubreddits) {
             var subreddit = JSON.parse(fileSystem.readFileSync("./parsed_subreddits/" + parsedSubreddits[index]));
-            if (subreddit.audienceTarget.indexOf(genre) !== -1) {
+            if (subreddit.tags.indexOf(tag) !== -1) {
                 console.log(subreddit.url);
             }
         }
