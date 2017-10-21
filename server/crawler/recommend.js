@@ -83,9 +83,9 @@ module.exports = {
         }
 
         var heap = new Heap(function(subreddit1, subreddit2) {
-            //console.log("Subreddit1:");
+            // Could we make this more efficient by storing data? Currently runs decently fast anyway...
+
             var subreddit1Tags = getMatchingTags(subreddit1.tags);
-            //console.log("Subreddit2:" + subreddit2Tags);
             var subreddit2Tags = getMatchingTags(subreddit2.tags);
 
             var tagDifference = subreddit2Tags.length - subreddit1Tags.length;
@@ -106,8 +106,7 @@ module.exports = {
                 return tagMinDifference;
             }
 
-            // Popularity difference
-            //console.log("Result: " + (subreddit1.total_subscribers - subreddit2.total_subscribers));
+            // Popularity Difference
             return subreddit2.total_subscribers - subreddit1.total_subscribers;
         });
 

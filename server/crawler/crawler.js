@@ -109,7 +109,7 @@ function propagateSubredditData(subredditURL, parentSubredditData, depth, search
     // This is really inefficient but that is because the db isnt ready yet
     var fileName = regex.getNameFromURL(subredditURL);
 
-    // handle self reference
+    // Handle self referential loops
     if (searched.indexOf(fileName) !== -1) {
         return;
     }
@@ -158,14 +158,12 @@ function updateTags(subredditData, newTag, depth) {
         var existingTag = subredditData.tags[i];
         if (existingTag.tag === newTag.tag) {
             if (existingTag.mentionDistance > (newTag.mentionDistance + depth)) {
-                // console.log(subredditData.url + ": updating {" + existingTag.tag + ": " + existingTag.mentionDistance + " => " + newTag.mentionDistance + depth + "}");
                 existingTag.mentionDistance = (newTag.mentionDistance + depth);
                 return true;
             }
             return false;
         }
     }
-    //console.log("tag was not found, adding: " + newTag.tag + ": " + depth);
     subredditData.tags.push({
         tag: newTag.tag,
         mentionDistance: newTag.mentionDistance + depth
@@ -178,8 +176,7 @@ function continueSearch(after) {
         function(after) {
             state.after = after;
             setTimeout(function() {
-                console.log("Max Depth Reached: " + state.maxDepthSubreddit + " at " + state.maxDepthReached + " references.");
-                continueSearch(after)
+                continueSearch(after);
             }, 1000);
         },
         function(error) {
@@ -221,7 +218,21 @@ module.exports = {
         batchSize = size;
         loadStateJSON(function(after) {
             console.log("Starting search from " + state.after);
-            continueSearch(after)
+            continueSearch(after);
+        });
+    },
+    updateDescription: function(size) {
+        if (size > 100) {
+            console.log("Max batch size is 100");
+            size = 100;
+        } else if (size < 0) {
+            console.log("Min batch size is 1");
+            size = 1;
+        }
+        batchSize = size;
+        loadStateJSON(function(after) {
+            console.log("Starting search from " + state.after);
+            continueSearch(after);
         });
     }
 };
