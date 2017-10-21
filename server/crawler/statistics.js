@@ -1,0 +1,91 @@
+var fileSystem = require('fs');
+var ProgressBar = require('console-progress');
+var Heap = require('heap');
+const regex = require('./regexModule');
+
+var statistics = {
+    numUniqueGraphs: 0,
+    largestGraph: 0,
+    largestGraphSource: "",
+    smallestGraph: Number.MAX_VALUE,
+    smallestGraphSource: ""
+};
+// How many unique graphs are there?
+
+// How many graphs lack tags?
+
+// How deep is the most obscure relation? (at least 1000 from state experiment)
+//  - (might be more complicated that the largest tag mention value due to tag switching)
+
+// Questions this research will answer:
+// Should we limit depth of relations to save on crawl speed?
+//  - what should that depth be to minimize the number of disconnected graphs?
+// How will this affect recommendations?
+
+// Input a subreddit, out comes statistics about individual graph connected to that subreddit
+function searchGraph(fileName, searchedSubreddits, allSearchedSubreddits) {
+    // Handle self referential loops
+    if (searchedSubreddits.indexOf(fileName) !== -1) {
+        return;
+    }
+
+    if (fileSystem.existsSync(`./parsed_subreddits/${fileName}.json`)) {
+        subredditData = JSON.parse(fileSystem.readFileSync(`./parsed_subreddits/${fileName}.json`));
+
+        searchedSubreddits.push(fileName);
+        allSearchedSubreddits.push(fileName);
+
+        if (!!subredditData.relatedSubreddits) {
+            for (i in subredditData.relatedSubreddits) {
+                if (subredditData.relatedSubreddits[i] !== undefined) {
+                    searchGraph(regex.getNameFromURL(subredditData.relatedSubreddits[i]), searchedSubreddits, allSearchedSubreddits);
+                }
+            }
+        }
+        //console.log("Finished " + fileName + " num nodes:" + searchedSubreddits.length);
+    }
+}
+
+module.exports = {
+    getStatistics: function() {
+        var parsedSubreddits = fileSystem.readdirSync("./parsed_subreddits/");
+
+        console.log("Searching " + parsedSubreddits.length + " subreddits\n");
+
+        var progressBarScale = 1000;
+        var bar = ProgressBar.getNew('[:bar]', {
+            complete: '=',
+            incomplete: ' ',
+            width: 40,
+            total: parsedSubreddits.length / progressBarScale
+        });
+
+        var allSearchedSubreddits = [];
+        var index;
+        for (index in parsedSubreddits) {
+            var fileName = parsedSubreddits[index].replace('.json', '');
+            if (allSearchedSubreddits.indexOf(fileName) === -1) {
+                var searchedSubreddits = [];
+                searchGraph(fileName, searchedSubreddits, allSearchedSubreddits);
+                statistics.numUniqueGraphs++;
+                if (statistics.largestGraph < searchedSubreddits.length) {
+                    statistics.largestGraph = searchedSubreddits.length;
+                    statistics.largestGraphSource = "r/" + fileName;
+                }
+                if (statistics.smallestGraph > searchedSubreddits.length) {
+                    statistics.smallestGraph = searchedSubreddits.length;
+                    statistics.smallestGraphSource = "r/" + fileName;
+                }
+            }
+            if (index % progressBarScale === 0) {
+                bar.tick();
+            }
+        }
+        console.log(statistics);
+        return statistics;
+    }
+};
+
+require('make-runnable/custom')({
+    printOutputFrame: false
+});
