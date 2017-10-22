@@ -10,7 +10,7 @@ module.exports = {
         console.log("Searching " + parsedSubreddits.length + " subreddits\n");
 
         var progressBarScale = 1000;
-        var bar = ProgressBar.getNew('[:bar]', {
+        var bar = ProgressBar.getNew('[:bar] :eta Seconds Remaining', {
             complete: '=',
             incomplete: ' ',
             width: 40,
@@ -113,7 +113,7 @@ module.exports = {
         var parsedSubreddits = fileSystem.readdirSync("./parsed_subreddits/");
 
         var progressBarScale = 1000;
-        var bar = ProgressBar.getNew('[:bar]', {
+        var bar = ProgressBar.getNew('[:bar] :eta Seconds Remaining', {
             complete: '=',
             incomplete: ' ',
             width: 40,

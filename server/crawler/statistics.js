@@ -25,24 +25,24 @@ var statistics = {
 // Input a subreddit, out comes statistics about individual graph connected to that subreddit
 function searchGraph(fileName, searchedSubreddits, allSearchedSubreddits) {
     // Handle self referential loops
-    if (searchedSubreddits.indexOf(fileName) !== -1) {
+    if (!!searchedSubreddits[fileName]) {
         return;
     }
 
     if (fileSystem.existsSync(`./parsed_subreddits/${fileName}.json`)) {
         subredditData = JSON.parse(fileSystem.readFileSync(`./parsed_subreddits/${fileName}.json`));
 
-        searchedSubreddits.push(fileName);
-        allSearchedSubreddits.push(fileName);
+        searchedSubreddits[fileName] = true;
+        allSearchedSubreddits[fileName] = true;
 
         if (!!subredditData.relatedSubreddits) {
             for (i in subredditData.relatedSubreddits) {
-                if (subredditData.relatedSubreddits[i] !== undefined) {
+                // This check shouldnt need to exist
+                if (!!subredditData.relatedSubreddits[i]) {
                     searchGraph(regex.getNameFromURL(subredditData.relatedSubreddits[i]), searchedSubreddits, allSearchedSubreddits);
                 }
             }
         }
-        //console.log("Finished " + fileName + " num nodes:" + searchedSubreddits.length);
     }
 }
 
@@ -53,27 +53,27 @@ module.exports = {
         console.log("Searching " + parsedSubreddits.length + " subreddits\n");
 
         var progressBarScale = 1000;
-        var bar = ProgressBar.getNew('[:bar]', {
+        var bar = ProgressBar.getNew('[:bar] :eta Seconds Remaining', {
             complete: '=',
             incomplete: ' ',
             width: 40,
             total: parsedSubreddits.length / progressBarScale
         });
 
-        var allSearchedSubreddits = [];
+        var allSearchedSubreddits = {};
         var index;
         for (index in parsedSubreddits) {
             var fileName = parsedSubreddits[index].replace('.json', '');
-            if (allSearchedSubreddits.indexOf(fileName) === -1) {
-                var searchedSubreddits = [];
+            if (!allSearchedSubreddits[fileName]) {
+                var searchedSubreddits = {};
                 searchGraph(fileName, searchedSubreddits, allSearchedSubreddits);
                 statistics.numUniqueGraphs++;
-                if (statistics.largestGraph < searchedSubreddits.length) {
-                    statistics.largestGraph = searchedSubreddits.length;
+                if (statistics.largestGraph < Object.keys(searchedSubreddits).length) {
+                    statistics.largestGraph = Object.keys(searchedSubreddits).length;
                     statistics.largestGraphSource = "r/" + fileName;
                 }
-                if (statistics.smallestGraph > searchedSubreddits.length) {
-                    statistics.smallestGraph = searchedSubreddits.length;
+                if (statistics.smallestGraph > Object.keys(searchedSubreddits).length) {
+                    statistics.smallestGraph = Object.keys(searchedSubreddits).length;
                     statistics.smallestGraphSource = "r/" + fileName;
                 }
             }
