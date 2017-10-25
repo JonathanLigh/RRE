@@ -18,7 +18,18 @@ router.param('relationId', function(req, res, next, id) {
 });
 
 router.get('/', function (req, res, next) {
-  Relation.findAll()
+  Relation.find({})
+  .then(relations => res.json(relations))
+  .catch(next);
+});
+
+//find relations that contain a specific subRedditId
+router.get('/relationswith/:subRedditId', function (req, res, next) {
+  Relation.find({
+    "_subreddits": {
+      "$regex": req.params.subRedditId,
+      "$options": "i" }
+    })
   .then(relations => res.json(relations))
   .catch(next);
 });

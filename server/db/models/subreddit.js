@@ -4,8 +4,8 @@ const Schema = mongoose.Schema;
 const subredditSchema = new Schema({
   name: {type: String, required: true, unique: true},
   tags: [{
-    tag: {type: String, required: true},
-    correlation: {type: Number, required: true}
+    tag: {type: Schema.Types.ObjectId, ref: 'Tag', required: true},
+    correlation: {type: Number, defualt: 0}
   }],
   numSubscribers: {type: Number}
 });
