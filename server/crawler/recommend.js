@@ -1,11 +1,14 @@
 var fileSystem = require('fs');
 var ProgressBar = require('console-progress');
+var crawler = require('./crawler')
 var Heap = require('heap');
+
+var testingMode = false;
 
 module.exports = {
     getAllTags: function() {
         var tags = [];
-        var parsedSubreddits = fileSystem.readdirSync("./parsed_subreddits/");
+        var parsedSubreddits = fileSystem.readdirSync(crawler.parsedSubredditFolder(testingMode));
 
         console.log("Searching " + parsedSubreddits.length + " subreddits\n");
 
@@ -19,7 +22,7 @@ module.exports = {
 
         var index;
         for (index in parsedSubreddits) {
-            var subreddit = JSON.parse(fileSystem.readFileSync("./parsed_subreddits/" + parsedSubreddits[index]));
+            var subreddit = JSON.parse(fileSystem.readFileSync(crawler.parsedSubredditFolder(testingMode) + parsedSubreddits[index]));
             var i;
             for (i in subreddit.tags) {
                 var tag = subreddit.tags[i].tag;
@@ -110,7 +113,7 @@ module.exports = {
             return subreddit2.total_subscribers - subreddit1.total_subscribers;
         });
 
-        var parsedSubreddits = fileSystem.readdirSync("./parsed_subreddits/");
+        var parsedSubreddits = fileSystem.readdirSync(crawler.parsedSubredditFolder(testingMode));
 
         var progressBarScale = 1000;
         var bar = ProgressBar.getNew('[:bar] :eta Seconds Remaining', {
@@ -122,7 +125,7 @@ module.exports = {
 
         var stop = 0;
         for (index in parsedSubreddits) {
-            var subreddit = JSON.parse(fileSystem.readFileSync("./parsed_subreddits/" + parsedSubreddits[index]));
+            var subreddit = JSON.parse(fileSystem.readFileSync(crawler.parsedSubredditFolder(testingMode) + parsedSubreddits[index]));
             heap.push(subreddit);
             if (index % progressBarScale === 0) {
                 bar.tick();
@@ -145,6 +148,10 @@ module.exports = {
             });
         }
         return output;
+    },
+    test: function() {
+        testingMode = true;
+
     }
 };
 

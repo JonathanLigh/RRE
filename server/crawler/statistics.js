@@ -15,6 +15,7 @@ var statistics = {
 // How many graphs lack tags?
 
 // How deep is the most obscure relation? (at least 1000 from state experiment)
+// - in regards to the 1000 depth: was that just an update cycle??
 //  - (might be more complicated that the largest tag mention value due to tag switching)
 
 // Questions this research will answer:

@@ -6,6 +6,9 @@ const descriptionParser = require('./descriptionParser');
 
 var batchSize = 1;
 
+var testingMode = false;
+var triggerExit = false;
+
 var statePath = "state.json";
 var state = {
     after: "",
@@ -45,45 +48,6 @@ function getReddits(after) {
             return url;
         }
 
-        function parseSubreddit(subreddit) {
-            var subredditData;
-            var fileName = regex.getNameFromURL(subreddit.url)
-            if (fileSystem.existsSync(`./parsed_subreddits/${fileName}.json`)) {
-                subredditData = JSON.parse(fileSystem.readFileSync(`./parsed_subreddits/${fileName}.json`));
-                console.log(`Discovered ${subreddit.url}`);
-            } else {
-                console.log(`Discovered New ${subreddit.url}`);
-                subredditData = {
-                    tags: []
-                }
-            }
-
-            subredditData.url = subreddit.url;
-            subredditData.name = subreddit.name;
-            subredditData.total_subscribers = subreddit.subscribers;
-
-            const csvMatcher = /\b[\w\s]+\b/gi;
-            var tags = regex.getListOfMatches(subreddit.audience_target, csvMatcher);
-            var i;
-            for (i in tags) {
-                updateTags(subredditData, {
-                    tag: tags[i],
-                    mentionDistance: 0
-                }, 0);
-            }
-
-            subredditData.relatedSubreddits = descriptionParser.getMentionedSubreddits(subreddit);
-
-            writeSubreddit(fileName, subredditData);
-
-            for (i in subredditData.relatedSubreddits) {
-                console.log("Updating (" + i + "/" + subredditData.relatedSubreddits.length + "): " + subredditData.relatedSubreddits[i]);
-                propagateSubredditData(subredditData.relatedSubreddits[i], subredditData, 1, []);
-            }
-
-            console.log(`Finished ${subreddit.url}`);
-        }
-
         get_json(buildURL(after, batchSize), function(response) {
             var subreddit;
             for (subreddit in response.data.children) {
@@ -95,8 +59,47 @@ function getReddits(after) {
     });
 }
 
+function parseSubreddit(subreddit) {
+    var subredditData;
+    var fileName = regex.getNameFromURL(subreddit.url)
+    if (fileSystem.existsSync(parsedSubredditFolder(testingMode) + fileName + ".json")) {
+        subredditData = JSON.parse(fileSystem.readFileSync(parsedSubredditFolder(testingMode) + fileName + ".json"));
+        console.log(`Discovered ${subreddit.url}`);
+    } else {
+        console.log(`Discovered New ${subreddit.url}`);
+        subredditData = {
+            tags: []
+        }
+    }
+
+    subredditData.url = subreddit.url;
+    subredditData.name = subreddit.name;
+    subredditData.total_subscribers = subreddit.subscribers;
+
+    const csvMatcher = /\b[\w\s]+\b/gi;
+    var tags = regex.getListOfMatches(subreddit.audience_target, csvMatcher);
+    var i;
+    for (i in tags) {
+        updateTags(subredditData, {
+            tag: tags[i],
+            mentionDistance: 0
+        }, 0);
+    }
+
+    subredditData.relatedSubreddits = descriptionParser.getMentionedSubreddits(subreddit);
+
+    writeSubreddit(fileName, subredditData);
+
+    for (i in subredditData.relatedSubreddits) {
+        console.log("Updating (" + i + "/" + subredditData.relatedSubreddits.length + "): " + subredditData.relatedSubreddits[i]);
+        propagateSubredditData(subredditData.relatedSubreddits[i], subredditData, 1, []);
+    }
+
+    console.log(`Finished ${subreddit.url}`);
+}
+
 function writeSubreddit(fileName, subredditData) {
-    var subredditPath = `./parsed_subreddits/${fileName}.json`;
+    var subredditPath = parsedSubredditFolder(testingMode) + fileName + ".json";
     fileSystem.writeFileSync(subredditPath, JSON.stringify(subredditData));
 }
 
@@ -116,8 +119,8 @@ function propagateSubredditData(subredditURL, parentSubredditData, depth, search
 
     var subredditData;
     var relatedURL = parentSubredditData.url.replace(/^\/|\/$/g, '');
-    if (fileSystem.existsSync(`./parsed_subreddits/${fileName}.json`)) {
-        subredditData = JSON.parse(fileSystem.readFileSync(`./parsed_subreddits/${fileName}.json`));
+    if (fileSystem.existsSync(parsedSubredditFolder(testingMode) + fileName + ".json")) {
+        subredditData = JSON.parse(fileSystem.readFileSync(parsedSubredditFolder(testingMode) + fileName + ".json"));
         if (subredditData.relatedSubreddits.indexOf(relatedURL) === -1) {
             subredditData.relatedSubreddits.push(relatedURL);
         }
@@ -201,9 +204,13 @@ function loadStateJSON(callback) {
 }
 
 exitHook(function() {
-    fileSystem.writeFileSync(statePath, JSON.stringify(state));
-    console.log("    Crawler terminated, current state saved as " + state.after);
-    process.exit(0);
+    if (triggerExit) {
+        if (!testingMode) {
+            fileSystem.writeFileSync(statePath, JSON.stringify(state));
+            console.log("    Crawler terminated, current state saved as " + state.after);
+        }
+        process.exit(0);
+    }
 });
 
 module.exports = {
@@ -216,26 +223,154 @@ module.exports = {
             size = 1;
         }
         batchSize = size;
+        triggerExit = true;
         loadStateJSON(function(after) {
             console.log("Starting search from " + state.after);
             continueSearch(after);
         });
     },
-    updateDescription: function(size) {
-        if (size > 100) {
-            console.log("Max batch size is 100");
-            size = 100;
-        } else if (size < 0) {
-            console.log("Min batch size is 1");
-            size = 1;
+    parsedSubredditFolder: function(testing) {
+        if (testing) {
+            return "./parsed_subreddits_test/";
         }
-        batchSize = size;
-        loadStateJSON(function(after) {
-            console.log("Starting search from " + state.after);
-            continueSearch(after);
-        });
+        return "./parsed_subreddits/";
+    },
+    test() {
+        testingMode = true;
+
+        function whenNewData_writeSubreddit_fileCreated() {
+            // Given
+            var fileName = "a";
+            var data = {
+                "test": "test"
+            }
+
+            // When
+            writeSubreddit(fileName, data);
+
+            // Then
+            if (fs.existsSync(parsedSubredditFolder(testingMode) + fileName + ".json")) {
+                var readData = fs.readFileSync(parsedSubredditFolder(testingMode) + fileName + ".json");
+                if (readData.test === data.test) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        function whenExistingData_writeSubreddit_fileUpdated() {
+            // Given
+            var fileName = "a";
+            var data = {
+                "test": "test"
+            };
+            writeSubreddit(fileName, data);
+            var updateData = {
+                "test": "test2"
+            };
+
+            // When
+            writeSubreddit(fileName, updateData);
+
+            // Then
+            if (fs.existsSync(parsedSubredditFolder(testingMode) + fileName + ".json")) {
+                var readData = fs.readFileSync(parsedSubredditFolder(testingMode) + fileName + ".json");
+                if (readData.test === updateData.test) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        function whenTagsEmpty_updateTags_tagUpdated() {
+            // Given
+            var subredditData = {
+                tags: []
+            };
+            var newTag = {
+                tag: "tag",
+                mentionDistance: 0
+            };
+            var depth = 0;
+
+            // When
+            var updated = updateTags(subredditData, newTag, depth);
+
+            if (updated) {
+                if (subredditData.tags.length === 1 && subredditData.tags[0].tag === newTag.tag) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        function whenTagExists_updateTags_closerDistance_tagUpdated() {
+            // Given
+            var subredditData = {
+                tags: [{
+                    tag: "tag",
+                    mentionDistance: 1
+                }]
+            };
+            var newTag = {
+                tag: "tag",
+                mentionDistance: 0
+            };
+            var depth = 0;
+
+            // When
+            var updated = updateTags(subredditData, newTag, depth);
+
+            if (updated) {
+                if (subredditData.tags.length === 1 && subredditData.tags[0].tag === newTag.tag && subredditData.tags[0].mentionDistance === depth) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        function whenTagExists_updateTags_fartherDistance_tagNotUpdated() {
+            // Given
+            var subredditData = {
+                tags: [{
+                    tag: "tag",
+                    mentionDistance: 0
+                }]
+            };
+            var newTag = {
+                tag: "tag",
+                mentionDistance: 0
+            };
+            var depth = 1;
+
+            // When
+            var updated = updateTags(subredditData, newTag, depth);
+
+            if (!updated) {
+                if (subredditData.tags.length === 1 && subredditData.tags[0].mentionDistance === 0) {
+                    return true;
+                }
+            }
+            return false;
+        }
     }
 };
+
+/*
+updateDescription: function(size) {
+    if (size > 100) {
+        console.log("Max batch size is 100");
+        size = 100;
+    } else if (size < 0) {
+        console.log("Min batch size is 1");
+        size = 1;
+    }
+    batchSize = size;
+    loadStateJSON(function(after) {
+        console.log("Starting search from " + state.after);
+        continueSearch(after);
+    });
+}*/
 
 require('make-runnable/custom')({
     printOutputFrame: false
