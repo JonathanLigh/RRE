@@ -52,9 +52,8 @@ describe('Testing the server...', () => {
 
   // Run the rest of tests
 
-  //see my comment in ./crawler/crawler.test on why this works
-  require('../crawler/crawler.js');
+  require('./crawler/crawler.test.js');
   require('./crawler/recommend.test.js');
-  require('../crawler/descriptionParser.js');
   require('./crawler/descriptionParser.test.js');
+
 });

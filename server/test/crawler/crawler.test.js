@@ -1,12 +1,8 @@
+//we will move these to the top, but in the mean time they can be here
 const chai = require('chai');
 const spies = require('chai-spies');
 chai.use(spies);
 const expect = chai.expect;
-
-// writeSubreddit
-// propogateSubredditData
-// updateTags
-// loadStateJSON
 
 /*
 For the first few functions I wrote a bunch of example possible tests
@@ -17,8 +13,6 @@ for testing syntax and executes them, that means you can have tests in your
 files that only execute during testing. However, I absolutely recomend a great
 refactoring now that we have it functioning. -Jonathan
 */
-
-//delete this file when we are all on the same page
 
 describe('Testing buildURL', () => {
 
@@ -58,7 +52,7 @@ describe('Testing parseSubreddit', () => {
 
 describe('Testing writeSubreddit', () => {
 
-  it('writeSubreddit outputs expected value', () => {
+  it('writeSubreddit correctly writes out the subreddit with expected values', () => {
 
   });
 
@@ -66,7 +60,43 @@ describe('Testing writeSubreddit', () => {
 
   });
 
-  it('writeSubreddit does this if the subreddit does not exists', () => {
+});
+
+describe('Testing propogateSubredditData', () => {
+
+  it('propogateSubredditData outputs expected value', () => {
+
+  });
+
+  it('propogateSubredditData throws an error when expected', () => {
+
+  });
+
+  it('propogateSubredditData does this if the subreddit does not exists', () => {
+
+  });
+
+});
+
+describe('Testing updateTags', () => {
+
+  it('updateTags outputs expected value', () => {
+
+  });
+
+  it('updateTags throws an error when expected', () => {
+
+  });
+
+});
+
+describe('Testing loadStateJSON', () => {
+
+  it('loadStateJSON outputs expected value', () => {
+
+  });
+
+  it('loadStateJSON throws an error when expected', () => {
 
   });
 

@@ -19,3 +19,19 @@ describe('Testing getMentionedSubreddits', () => {
   });
 
 });
+
+describe('Testing cleanDescription', () => {
+
+  it('cleanDescription outputs expected value', () => {
+
+  });
+
+  it('cleanDescription throws an error when expected', () => {
+
+  });
+
+  it('cleanDescription does this if the subreddit does not exists', () => {
+
+  });
+
+});
