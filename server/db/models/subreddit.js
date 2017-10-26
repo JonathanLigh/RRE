@@ -4,7 +4,7 @@ const Schema = mongoose.Schema;
 const subredditSchema = new Schema({
   name: {type: String, required: true, unique: true},
   tags: [{
-    _tag: {type: Schema.Types.ObjectId, ref: 'Tag', required: true},
+    name: {type: String, required: true},
     distance: {type: Number, defualt: 0}
   }],
   numSubscribers: {type: Number},
@@ -19,8 +19,9 @@ takes:
 returns:
   the query for finding each
 */
-subredditSchema.query.getTagIdsBySubreddit = function(name) {
-  return this.find({name: name})
+subredditSchema.query.getTagsBySubreddit = function(name) {
+  return this.findOne({name: name})
+  .select('tags')
 }
 
 /*
@@ -34,7 +35,7 @@ subredditSchema.query.getSubredditsByTags = function(excludedSRNames, tagNames) 
   return this.find({
     groups: { "$nin": excludedSRNames },
     tags: [{ //no idea if this syntax is legal it compiles, so it might be
-      _tag: {$in: tagNames },
+      name: {$in: tagNames },
       distance: {$leq: 5}    //arbitrary number, can be tweeked
       }],
     numSubscribers: {$geq: 500}   //arbitrary number, can be tweeked
