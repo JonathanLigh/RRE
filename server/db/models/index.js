@@ -1,9 +1,9 @@
-const Relation = require('./relation');
+// const Relation = require('./relation');
 const Subreddit = require('./subreddit');
 const Tag = require('./tag');
 
 module.exports = {
-  Relation: Relation,
+  // Relation: Relation,
   Subreddit: Subreddit,
   Tag: Tag
 };

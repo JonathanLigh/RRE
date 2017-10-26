@@ -11,5 +11,8 @@ const subredditSchema = new Schema({
   _relatedSubreddits: [{type: Schema.Types.ObjectId, ref: 'Subreddit'}]
 });
 
+relationSchema.post('init', doc => {
+  doc.degreeCorrelation = Utils.genCorrelationValue(doc._subreddits);
+});
 
 module.exports = mongoose.model('Subreddit', subredditSchema);
