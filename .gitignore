@@ -3,3 +3,4 @@ node_modules
 /server/crawler/parsed_subreddits/
 /server/crawler/state.json
 package-lock.json
+.DS_Store
