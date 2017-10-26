@@ -28,8 +28,18 @@ router.get('/:subredditId', /*add access checking functions here*/ function (req
     res.status(status).json(req.requestedSubreddit);
 });
 
+
+/*
+Seva, I just realized we should not have a post function here,
+instead we should have the crawler connect directly to the database and
+create db entries as it's getting subreddit information
+*/
 router.post('/', /*add access checking functions here*/ function (req, res, next) {
-  Subreddit.create(req.body)
+  Subreddit.create({
+    name: req.body.url,
+    numSubcribers: req.body.total_subscribers,
+    _relatedSubreddits:
+  })
   .then(() => {
     res.status(201);
     res.json();
