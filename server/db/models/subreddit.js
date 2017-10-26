@@ -7,7 +7,8 @@ const subredditSchema = new Schema({
     tag: {type: Schema.Types.ObjectId, ref: 'Tag', required: true},
     correlation: {type: Number, defualt: 0}
   }],
-  numSubscribers: {type: Number}
+  numSubscribers: {type: Number},
+  _relatedSubreddits: [{type: Schema.Types.ObjectId, ref: 'Subreddit'}]
 });
 
 

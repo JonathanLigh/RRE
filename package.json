@@ -4,7 +4,7 @@
     "description": "",
     "main": "server/main.js",
     "scripts": {
-        "test": "echo \"Error: no test specified\" && exit 1",
+        "test": "mocha ./server/test",
         "start": "node ./server/main"
     },
     "repository": {
@@ -40,6 +40,14 @@
         "progress": "^2.0.0",
         "querystring": "^0.2.0",
         "volleyball": "^1.4.1"
+    },
+    "devDependencies": {
+        "chai": "^4.0.2",
+        "chai-spies": "^0.7.1",
+        "chai-string": "^1.4.0",
+        "mocha": "^3.4.2",
+        "nodemon": "^1.11.0",
+        "supertest": "^3.0.0"
     },
     "browser": {
         "request": "xhr"
