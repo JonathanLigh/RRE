@@ -15,19 +15,19 @@ const subredditSchema = new Schema({
 we do not use ES6 arrow functions here because it prevents binding with "this"
 ref: http://mongoosejs.com/docs/guide.html
 takes:
-  subredditName
+  subredditNames
 returns:
   the query for finding each
 */
-subredditSchema.query.getTagsBySubreddit = function(name) {
-  return this.findOne({name: name})
+subredditSchema.query.getTagsBySubreddit = function(names) {
+  return this.find({name: { $in: names }})
   .select('tags')
 }
 
 /*
 takes:
   list of subreddit names to exclude
-  list of tag names
+  list of tag names which will be the conjugate of
 returns:
   query to be executed that will return the most related subreddits
 */

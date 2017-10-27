@@ -18,6 +18,7 @@
     },
     "homepage": "https://github.com/JonathanLigh/RedditRecomendationEngine#readme",
     "dependencies": {
+        "async": "^2.5.0",
         "babel": "^6.23.0",
         "babel-core": "^6.26.0",
         "body-parser": "^1.18.1",
