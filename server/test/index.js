@@ -10,7 +10,7 @@ const models = require('../db/models');
 // Options for connecting to MongoDB
 // We can add more later
 
-const testObj = {
+/*const testObj = {
     foobar: () => {
         console.log('foo');
         return 'bar';
@@ -47,7 +47,7 @@ describe('Testing suite capabilities...', () => {
 
     });
 
-});
+});*/
 
 describe('Testing the server...', () => {
     const options = {

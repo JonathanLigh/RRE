@@ -90,7 +90,7 @@ function parseSubreddit(subreddit) {
 
     writeSubreddit(fileName, subredditData);
 
-    for (i in subredditData.relatedSubreddits) {
+    for (i = 0; i < subredditData.relatedSubreddits.length; i++) {
         console.log("Updating (" + (i + 1) + "/" + subredditData.relatedSubreddits.length + "): " + subredditData.relatedSubreddits[i]);
         propagateSubredditData(subredditData.relatedSubreddits[i], subredditData, 1, []);
     }
@@ -100,6 +100,7 @@ function parseSubreddit(subreddit) {
 
 function writeSubreddit(fileName, subredditData) {
     var subredditPath = parsedSubredditDir(testingMode) + fileName + ".json";
+    console.log(fileName + " : " + subredditData);
     fileSystem.writeFileSync(subredditPath, JSON.stringify(subredditData));
 }
 
@@ -119,7 +120,8 @@ function propagateSubredditData(subredditURL, parentSubredditData, depth, search
 
     var subredditData;
     var relatedURL = parentSubredditData.url.replace(/^\/|\/$/g, '');
-    if (fileSystem.existsSync(parsedSubredditDir(testingMode) + fileName + ".json")) {
+    var existed = fileSystem.existsSync(parsedSubredditDir(testingMode) + fileName + ".json");
+    if (existed) {
         subredditData = JSON.parse(fileSystem.readFileSync(parsedSubredditDir(testingMode) + fileName + ".json"));
         if (subredditData.relatedSubreddits.indexOf(relatedURL) === -1) {
             subredditData.relatedSubreddits.push(relatedURL);
@@ -136,9 +138,9 @@ function propagateSubredditData(subredditURL, parentSubredditData, depth, search
     for (i in parentSubredditData.tags) {
         updatedTags = updatedTags || updateTag(subredditData, parentSubredditData.tags[i], depth);
     }
-    if (updatedTags) {
+    if (updatedTags || !existed) {
         writeSubreddit(regex.getNameFromURL(subredditURL), subredditData);
-        if (!!subredditData.relatedSubreddits) {
+        if (updatedTags && !!subredditData.relatedSubreddits) {
             for (i in subredditData.relatedSubreddits) {
                 // we want to update any possible tags that weren't originally referenced.
                 var nextFileName = regex.getNameFromURL(subredditData.relatedSubreddits[i]);
