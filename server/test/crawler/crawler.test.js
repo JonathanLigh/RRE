@@ -18,8 +18,6 @@ refactoring now that we have it functioning. -Jonathan
 
 describe('Testing buildURL', () => {
     it('buildURL_noAfter', () => {
-        // Given
-
         // When
         var url = crawler._buildURL();
 
@@ -29,7 +27,7 @@ describe('Testing buildURL', () => {
 
     it('buildURL_emptyStringAfter', () => {
         // Given
-        var after = ""
+        var after = "";
 
         // When
         var url = crawler._buildURL(after);
@@ -40,7 +38,7 @@ describe('Testing buildURL', () => {
 
     it('buildURL_validAfter', () => {
         // Given
-        var after = "test"
+        var after = "test";
 
         // When
         var url = crawler._buildURL(after);
@@ -64,7 +62,7 @@ describe('Testing writeSubreddit', () => {
         var fileName = "a";
         var data = {
             "test": "test"
-        }
+        };
 
         // When
         crawler._writeSubreddit(fileName, data);

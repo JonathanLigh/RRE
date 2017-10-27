@@ -24,5 +24,8 @@ module.exports = {
                 subreddit.url.replace(/^\/|\/$/g, '')); // Remove the first '/' and last '/' from '/r/subredditURL'
         }
         return [];
+    },
+    _cleanDescription: function(description) {
+        return cleanDescription(description);
     }
 };
