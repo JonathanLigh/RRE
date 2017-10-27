@@ -6,6 +6,8 @@ const descriptionParser = require('./descriptionParser');
 
 var batchSize = 1;
 
+var logging = false;
+
 var testingMode = false;
 var triggerExit = false;
 
@@ -121,11 +123,17 @@ function propagateSubredditData(subredditURL, parentSubredditData, depth, search
     var relatedURL = parentSubredditData.url.replace(/^\/|\/$/g, '');
     var existed = fileSystem.existsSync(parsedSubredditDir(testingMode) + fileName + ".json");
     if (existed) {
+        if (logging) {
+            console.log("Updating Subreddit: " + subredditURL);
+        }
         subredditData = JSON.parse(fileSystem.readFileSync(parsedSubredditDir(testingMode) + fileName + ".json"));
         if (subredditData.relatedSubreddits.indexOf(relatedURL) === -1) {
             subredditData.relatedSubreddits.push(relatedURL);
         }
     } else {
+        if (logging) {
+            console.log("Creating New Subreddit: " + subredditURL);
+        }
         subredditData = {
             url: subredditURL,
             tags: [],
@@ -139,6 +147,9 @@ function propagateSubredditData(subredditURL, parentSubredditData, depth, search
     }
     if (updatedTags || !existed) {
         writeSubreddit(regex.getNameFromURL(subredditURL), subredditData);
+        if (logging) {
+            console.log("Subreddit Saved: " + subredditURL);
+        }
         if (updatedTags && !!subredditData.relatedSubreddits) {
             for (i in subredditData.relatedSubreddits) {
                 // we want to update any possible tags that weren't originally referenced.
@@ -146,11 +157,20 @@ function propagateSubredditData(subredditURL, parentSubredditData, depth, search
                 var index = searched.indexOf(nextFileName);
                 if (index > -1) {
                     searched.splice(index, 1);
+                    if (logging) {
+                        console.log("Need to scan " + nextFileName + " again in case changes relate.");
+                    }
+                }
+                if (logging) {
+                    console.log("Updating (" + i + "/" + subredditData.relatedSubreddits.length + "): " + subredditData.relatedSubreddits[i]);
                 }
                 propagateSubredditData(subredditData.relatedSubreddits[i], subredditData, depth + 1, searched);
             }
         }
     } else {
+        if (logging) {
+            console.log("Finished: " + subredditURL);
+        }
         searched.push(fileName);
     }
 }
@@ -205,6 +225,9 @@ function loadStateJSON(callback) {
 }
 
 exitHook(function() {
+    if (logging) {
+        console.log("Exit Hook Triggered");
+    }
     if (triggerExit) {
         if (!testingMode) {
             fileSystem.writeFileSync(statePath, JSON.stringify(state));
