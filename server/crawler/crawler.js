@@ -62,8 +62,8 @@ function buildURL(after) {
 function parseSubreddit(subreddit) {
     var subredditData;
     var fileName = regex.getNameFromURL(subreddit.url)
-    if (fileSystem.existsSync(parsedSubredditFolder(testingMode) + fileName + ".json")) {
-        subredditData = JSON.parse(fileSystem.readFileSync(parsedSubredditFolder(testingMode) + fileName + ".json"));
+    if (fileSystem.existsSync("." + parsedSubredditFolder(testingMode) + fileName + ".json")) {
+        subredditData = JSON.parse(fileSystem.readFileSync("." + parsedSubredditFolder(testingMode) + fileName + ".json"));
         console.log(`Discovered ${subreddit.url}`);
     } else {
         console.log(`Discovered New ${subreddit.url}`);
@@ -99,7 +99,7 @@ function parseSubreddit(subreddit) {
 }
 
 function writeSubreddit(fileName, subredditData) {
-    var subredditPath = parsedSubredditFolder(testingMode) + fileName + ".json";
+    var subredditPath = "." + parsedSubredditFolder(testingMode) + fileName + ".json";
     fileSystem.writeFileSync(subredditPath, JSON.stringify(subredditData));
 }
 
@@ -119,8 +119,8 @@ function propagateSubredditData(subredditURL, parentSubredditData, depth, search
 
     var subredditData;
     var relatedURL = parentSubredditData.url.replace(/^\/|\/$/g, '');
-    if (fileSystem.existsSync(parsedSubredditFolder(testingMode) + fileName + ".json")) {
-        subredditData = JSON.parse(fileSystem.readFileSync(parsedSubredditFolder(testingMode) + fileName + ".json"));
+    if (fileSystem.existsSync("." + parsedSubredditFolder(testingMode) + fileName + ".json")) {
+        subredditData = JSON.parse(fileSystem.readFileSync("." + parsedSubredditFolder(testingMode) + fileName + ".json"));
         if (subredditData.relatedSubreddits.indexOf(relatedURL) === -1) {
             subredditData.relatedSubreddits.push(relatedURL);
         }
@@ -231,9 +231,9 @@ module.exports = {
     },
     parsedSubredditFolder: function(testing) {
         if (testing) {
-            return "./parsed_subreddits_test/";
+            return "/parsed_subreddits_test/";
         }
-        return "./parsed_subreddits/";
+        return "/parsed_subreddits/";
     },
     _buildURL: function(after) {
         testingMode = true;

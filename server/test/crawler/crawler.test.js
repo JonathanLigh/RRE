@@ -52,11 +52,11 @@ describe('Testing buildURL', () => {
 
 describe('Testing writeSubreddit', () => {
     beforeEach(() => {
-        fs.mkdirSync("../../crawler/" + crawler.parsedSubredditFolder(true));
+        fs.mkdirSync("../../crawler" + crawler.parsedSubredditFolder(true));
     });
 
     afterEach(() => {
-        fs.unlinkSync("../../crawler/" + crawler.parsedSubredditFolder(true));
+        fs.unlinkSync("../../crawler" + crawler.parsedSubredditFolder(true));
     });
 
     it('whenNewData_writeSubreddit_fileCreated', () => {
@@ -133,7 +133,7 @@ describe('Testing updateTag', () => {
         var depth = 0;
 
         // When
-        var updated = updateTag(subredditData, newTag, depth);
+        var updated = crawler._updateTag(subredditData, newTag, depth);
 
         // Then
         expect(updated, true);
@@ -157,7 +157,7 @@ describe('Testing updateTag', () => {
         var depth = 1;
 
         // When
-        var updated = updateTag(subredditData, newTag, depth);
+        var updated = crawler._updateTag(subredditData, newTag, depth);
 
         // Then
         expect(updated, false);
@@ -168,11 +168,11 @@ describe('Testing updateTag', () => {
 
 describe('Testing propogateSubredditData', () => {
     beforeEach(() => {
-        fs.mkdirSync("../../crawler/" + crawler.parsedSubredditFolder(true));
+        fs.mkdirSync("../../crawler" + crawler.parsedSubredditFolder(true));
     });
 
     afterEach(() => {
-        fs.unlinkSync("../../crawler/" + crawler.parsedSubredditFolder(true));
+        fs.unlinkSync("../../crawler" + crawler.parsedSubredditFolder(true));
     });
 
     it('whenNewSubreddit_propogateSubredditData_oneRelation_createsRelation_createsTags', () => {
@@ -181,7 +181,7 @@ describe('Testing propogateSubredditData', () => {
         var parentSubredditData = {
             url: "/r/parent",
             tags: [{
-                tag: "tag"
+                tag: "tag",
                 mentionDistance: 0
             }],
             name: "test_parent",
@@ -221,7 +221,7 @@ describe('Testing propogateSubredditData', () => {
         var parentSubredditData = {
             url: "/r/parent",
             tags: [{
-                tag: "parentTag"
+                tag: "parentTag",
                 mentionDistance: 0
             }],
             name: "test_parent",
@@ -235,7 +235,7 @@ describe('Testing propogateSubredditData', () => {
         var existingSubredditData = {
             url: subredditURL,
             tags: [{
-                tag: "existingTag"
+                tag: "existingTag",
                 mentionDistance: 0
             }],
             name: "test_existing",
@@ -274,22 +274,130 @@ describe('Testing propogateSubredditData', () => {
 
 describe('Testing parseSubreddit', () => {
     beforeEach(() => {
-        fs.mkdirSync("../../crawler/" + crawler.parsedSubredditFolder(true));
+        fs.mkdirSync("../../crawler" + crawler.parsedSubredditFolder(true));
     });
 
     afterEach(() => {
-        fs.unlinkSync("../../crawler/" + crawler.parsedSubredditFolder(true));
+        fs.unlinkSync("../../crawler" + crawler.parsedSubredditFolder(true));
     });
 
     it('whenCreatingSubreddit_parseSubreddit_subredditCreated', () => {
+        // Given
+        var subreddit = {
+            url: "/r/parent",
+            audience_target: "",
+            name: "test_parent",
+            subscribers: 1,
+            description: ""
+        }
 
+        // When
+        crawler._parseSubreddit(subreddit);
+
+        // Then
+        expect(fs.existsSync(crawler.parsedSubredditFolder(true) + "parent.json"), true);
+
+        var parentData = fs.readFileSync(parsedSubredditFolder(true) + "parent.json");
+
+        expect(parentData.relatedSubreddits.length, 0);
+        expect(parentData.tags.length, 0);
+        expect(parentData.url, "/r/parent");
+        expect(parentData.name, "test_parent");
+        expect(parentData.total_subscribers, 1);
+    });
+
+    it('whenCreatingSubreddit_withAudienceTarget_parseSubreddit_subredditUpdated', () => {
+        // Given
+        var subreddit = {
+            url: "/r/parent",
+            audience_target: "tag",
+            name: "test_parent",
+            subscribers: 1,
+            description: ""
+        }
+
+        // When
+        crawler._parseSubreddit(subreddit);
+
+        // Then
+        expect(fs.existsSync(crawler.parsedSubredditFolder(true) + "parent.json"), true);
+
+        var parentData = fs.readFileSync(parsedSubredditFolder(true) + "parent.json");
+
+        expect(parentData.relatedSubreddits.length, 0);
+        expect(parentData.tags.length, 1);
+        expect(parentData.tags[0].tag, "tag");
+        expect(parentData.tags[0].mentionDistance, 0);
+        expect(parentData.url, "/r/parent");
+        expect(parentData.name, "test_parent");
+        expect(parentData.total_subscribers, 1);
+    });
+
+    it('whenCreatingSubreddit_withDescription_parseSubreddit_subredditUpdated', () => {
+        // Given
+        var subreddit = {
+            url: "/r/parent",
+            audience_target: "",
+            name: "test_parent",
+            subscribers: 1,
+            description: "/r/child"
+        }
+
+        // When
+        crawler._parseSubreddit(subreddit);
+
+        // Then
+        expect(fs.existsSync(crawler.parsedSubredditFolder(true) + "parent.json"), true);
+
+        var parentData = fs.readFileSync(parsedSubredditFolder(true) + "parent.json");
+
+        expect(parentData.relatedSubreddits.length, 1);
+        expect(parentData.relatedSubreddits[0], "r/child");
+        expect(parentData.tags.length, 0);
+        expect(parentData.url, "/r/parent");
+        expect(parentData.name, "test_parent");
+        expect(parentData.total_subscribers, 1);
+
+        expect(fs.existsSync(crawler.parsedSubredditFolder(true) + "child.json"), true);
+
+        var childData = fs.readFileSync(parsedSubredditFolder(true) + "child.json");
+
+        expect(childData.relatedSubreddits.length, 1);
+        expect(childData.relatedSubreddits[0], "r/parent");
+        expect(childData.tags.length, 0);
+        expect(childData.url, "r/child");
     });
 
     it('whenUpdatingSubreddit_parseSubreddit_subredditUpdated', () => {
+        // Given
+        var parentSubredditData = {
+            url: "/r/parent",
+            tags: [],
+            relatedSubreddits: []
+        };
 
-    });
+        crawler._writeSubreddit("parent", parentSubredditData);
 
-    it('whenUpdatingSubredditWithRelations_parseSubreddit_subredditAndRelationsUpdated', () => {
+        var subreddit = {
+            url: "/r/parent",
+            audience_target: "",
+            name: "test_parent",
+            subscribers: 1,
+            description: ""
+        }
 
+        // When
+        crawler._parseSubreddit(subreddit);
+
+        // Then
+        expect(fs.existsSync(crawler.parsedSubredditFolder(true) + "parent.json"), true);
+
+        var parentData = fs.readFileSync(parsedSubredditFolder(true) + "parent.json");
+
+        expect(parentData.relatedSubreddits.length, 0);
+        expect(parentData.tags.length, 0);
+        expect(parentData.url, "/r/parent");
+        expect(parentData.name, "test_parent");
+        expect(parentData.total_subscribers, 1);
     });
 });
