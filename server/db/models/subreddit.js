@@ -19,21 +19,20 @@ takes:
 returns:
   the query for finding each
 */
-subredditSchema.query.getTagsBySubreddit = function(names) {
-  return this.find({name: { $in: names }})
-  .select('tags')
+subredditSchema.query.getTagsBySubreddits = function(names) {
+  return this.find({name: { $in: names }}).select('tags')
 }
 
 /*
 takes:
-  list of subreddit names to exclude
+  list of subreddit names to exclude +
   list of tag names which will be the conjugate of
 returns:
   query to be executed that will return the most related subreddits
 */
 subredditSchema.query.getSubredditsByTags = function(excludedSRNames, tagNames) {
   return this.find({
-    groups: { "$nin": excludedSRNames },
+    name: { "$nin": excludedSRNames },
     tags: [{ //no idea if this syntax is legal it compiles, so it might be
       name: {$in: tagNames },
       distance: {$leq: 5}    //arbitrary number, can be tweeked

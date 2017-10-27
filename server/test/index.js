@@ -74,4 +74,5 @@ describe('Testing the server...', () => {
     require('./crawler/recommend.test.js');
     require('./crawler/descriptionParser.test.js');
     require('./crawler/regexModule.test.js');
+    require('./db/subreddit.model.test.js');
 });
