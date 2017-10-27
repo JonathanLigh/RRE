@@ -37,17 +37,6 @@ function getReddits(after) {
             });
         }
 
-        function buildURL(after) {
-            var url = "https://www.reddit.com/reddits.json";
-            if (!!batchSize) {
-                url += "?limit=" + batchSize;
-            }
-            if (!!after) {
-                url += "&after=" + after;
-            }
-            return url;
-        }
-
         get_json(buildURL(after, batchSize), function(response) {
             var subreddit;
             for (subreddit in response.data.children) {
@@ -57,6 +46,17 @@ function getReddits(after) {
             resolve(response.data.after);
         });
     });
+}
+
+function buildURL(after) {
+    var url = "https://www.reddit.com/reddits.json";
+    if (!!batchSize) {
+        url += "?limit=" + batchSize;
+    }
+    if (!!after) {
+        url += "&after=" + after;
+    }
+    return url;
 }
 
 function parseSubreddit(subreddit) {
@@ -80,7 +80,7 @@ function parseSubreddit(subreddit) {
     var tags = regex.getListOfMatches(subreddit.audience_target, csvMatcher);
     var i;
     for (i in tags) {
-        updateTags(subredditData, {
+        updateTag(subredditData, {
             tag: tags[i],
             mentionDistance: 0
         }, 0);
@@ -134,7 +134,7 @@ function propagateSubredditData(subredditURL, parentSubredditData, depth, search
     var updatedTags = false;
     var i;
     for (i in parentSubredditData.tags) {
-        updatedTags = updatedTags || updateTags(subredditData, parentSubredditData.tags[i], depth);
+        updatedTags = updatedTags || updateTag(subredditData, parentSubredditData.tags[i], depth);
     }
     if (updatedTags) {
         writeSubreddit(regex.getNameFromURL(subredditURL), subredditData);
@@ -155,7 +155,7 @@ function propagateSubredditData(subredditURL, parentSubredditData, depth, search
 }
 
 // Tags are {tag:"tagName", mentionDistance:X}
-function updateTags(subredditData, newTag, depth) {
+function updateTag(subredditData, newTag, depth) {
     var i;
     for (i in subredditData.tags) {
         var existingTag = subredditData.tags[i];
@@ -235,124 +235,25 @@ module.exports = {
         }
         return "./parsed_subreddits/";
     },
-    test() {
+    _buildURL: function(after) {
         testingMode = true;
-
-        function whenNewData_writeSubreddit_fileCreated() {
-            // Given
-            var fileName = "a";
-            var data = {
-                "test": "test"
-            }
-
-            // When
-            writeSubreddit(fileName, data);
-
-            // Then
-            if (fs.existsSync(parsedSubredditFolder(testingMode) + fileName + ".json")) {
-                var readData = fs.readFileSync(parsedSubredditFolder(testingMode) + fileName + ".json");
-                if (readData.test === data.test) {
-                    return true;
-                }
-            }
-            return false;
-        }
-
-        function whenExistingData_writeSubreddit_fileUpdated() {
-            // Given
-            var fileName = "a";
-            var data = {
-                "test": "test"
-            };
-            writeSubreddit(fileName, data);
-            var updateData = {
-                "test": "test2"
-            };
-
-            // When
-            writeSubreddit(fileName, updateData);
-
-            // Then
-            if (fs.existsSync(parsedSubredditFolder(testingMode) + fileName + ".json")) {
-                var readData = fs.readFileSync(parsedSubredditFolder(testingMode) + fileName + ".json");
-                if (readData.test === updateData.test) {
-                    return true;
-                }
-            }
-            return false;
-        }
-
-        function whenTagsEmpty_updateTags_tagUpdated() {
-            // Given
-            var subredditData = {
-                tags: []
-            };
-            var newTag = {
-                tag: "tag",
-                mentionDistance: 0
-            };
-            var depth = 0;
-
-            // When
-            var updated = updateTags(subredditData, newTag, depth);
-
-            if (updated) {
-                if (subredditData.tags.length === 1 && subredditData.tags[0].tag === newTag.tag) {
-                    return true;
-                }
-            }
-            return false;
-        }
-
-        function whenTagExists_updateTags_closerDistance_tagUpdated() {
-            // Given
-            var subredditData = {
-                tags: [{
-                    tag: "tag",
-                    mentionDistance: 1
-                }]
-            };
-            var newTag = {
-                tag: "tag",
-                mentionDistance: 0
-            };
-            var depth = 0;
-
-            // When
-            var updated = updateTags(subredditData, newTag, depth);
-
-            if (updated) {
-                if (subredditData.tags.length === 1 && subredditData.tags[0].tag === newTag.tag && subredditData.tags[0].mentionDistance === depth) {
-                    return true;
-                }
-            }
-            return false;
-        }
-
-        function whenTagExists_updateTags_fartherDistance_tagNotUpdated() {
-            // Given
-            var subredditData = {
-                tags: [{
-                    tag: "tag",
-                    mentionDistance: 0
-                }]
-            };
-            var newTag = {
-                tag: "tag",
-                mentionDistance: 0
-            };
-            var depth = 1;
-
-            // When
-            var updated = updateTags(subredditData, newTag, depth);
-
-            if (!updated) {
-                if (subredditData.tags.length === 1 && subredditData.tags[0].mentionDistance === 0) {
-                    return true;
-                }
-            }
-            return false;
-        }
+        return buildURL(after);
+    },
+    _parseSubreddit: function(subreddit) {
+        testingMode = true;
+        return parseSubreddit(subreddit);
+    },
+    _writeSubreddit: function(fileName, subredditData) {
+        testingMode = true;
+        return writeSubreddit(fileName, subredditData);
+    },
+    _propagateSubredditData: function(subredditURL, parentSubredditData, depth, searched) {
+        testingMode = true;
+        return propagateSubredditData(subredditURL, parentSubredditData, depth, searched);
+    },
+    _updateTag: function(subredditData, newTag, depth) {
+        testingMode = true;
+        return updateTag(subredditData, newTag, depth);
     }
 };
 
