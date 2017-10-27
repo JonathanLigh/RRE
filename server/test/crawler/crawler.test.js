@@ -343,36 +343,36 @@ describe('Testing parseSubreddit', () => {
     it('whenCreatingSubreddit_withDescription_parseSubreddit_subredditAndChildCreated', () => {
         // Given
         var subreddit = {
-            url: "/r/parentx",
+            url: "/r/parent",
             audience_target: "",
-            name: "test_parentx",
+            name: "test_parent",
             subscribers: 1,
-            description: "/r/childx"
+            description: "/r/child"
         }
 
         // When
         crawler._parseSubreddit(subreddit);
 
         // Then
-        equalTo(fs.existsSync(testDir + "parentx.json"), true);
+        equalTo(fs.existsSync(testDir + "parent.json"), true);
 
-        var parentData = JSON.parse(fs.readFileSync(testDir + "parentx.json"));
+        var parentData = JSON.parse(fs.readFileSync(testDir + "parent.json"));
 
         equalTo(parentData.relatedSubreddits.length, 1);
-        equalTo(parentData.relatedSubreddits[0], "r/childx");
+        equalTo(parentData.relatedSubreddits[0], "r/child");
         equalTo(parentData.tags.length, 0);
-        equalTo(parentData.url, "/r/parentx");
-        equalTo(parentData.name, "test_parentx");
+        equalTo(parentData.url, "/r/parent");
+        equalTo(parentData.name, "test_parent");
         equalTo(parentData.total_subscribers, 1);
 
-        equalTo(fs.existsSync(testDir + "childx.json"), true);
+        equalTo(fs.existsSync(testDir + "child.json"), true);
 
-        var childData = JSON.parse(fs.readFileSync(testDir + "childx.json"));
+        var childData = JSON.parse(fs.readFileSync(testDir + "child.json"));
 
         equalTo(childData.relatedSubreddits.length, 1);
-        equalTo(childData.relatedSubreddits[0], "r/parentx");
+        equalTo(childData.relatedSubreddits[0], "r/parent");
         equalTo(childData.tags.length, 0);
-        equalTo(childData.url, "r/childx");
+        equalTo(childData.url, "r/child");
     });
 
     it('whenUpdatingSubreddit_parseSubreddit_subredditUpdated', () => {

@@ -100,7 +100,6 @@ function parseSubreddit(subreddit) {
 
 function writeSubreddit(fileName, subredditData) {
     var subredditPath = parsedSubredditDir(testingMode) + fileName + ".json";
-    console.log(fileName + " : " + subredditData);
     fileSystem.writeFileSync(subredditPath, JSON.stringify(subredditData));
 }
 

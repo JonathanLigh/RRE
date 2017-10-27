@@ -25,34 +25,210 @@ var createCleanDir = function(path) {
     fs.mkdirSync(testDir);
 };
 
-describe('Testing buildURL', () => {
-
-    it('getAllTags returns ALL tags', () => {
-
+describe('Testing getAllTags', () => {
+    beforeEach(() => {
+        createCleanDir(testDir);
     });
 
-    it('getAllTags does this if no there are no tags to get', () => {
-
+    afterEach(() => {
+        deleteDir(testDir);
     });
 
-    it('getAllTags throws an error when ...', () => {
+    it('getAllTags_allTagsReturned', () => {
+        // Given
+        var existingSubredditData = {
+            url: "/r/existing",
+            tags: [{
+                tag: "existingTag",
+                mentionDistance: 0
+            }],
+            name: "test_existing",
+            relatedSubreddits: []
+        };
 
+        crawler._writeSubreddit("existing", existingSubredditData);
+
+        // When
+        var tags = recommend._getAllTags();
+
+        // Then
+        equalTo(tags.length, 1);
+        equalTo(tags[0], "existingTag");
     });
 
+    it('getAllTags_multipleTags_allUniqueTagsReturned', () => {
+        // Given
+        var existingSubredditData = {
+            url: "/r/existing",
+            tags: [{
+                tag: "existingTag",
+                mentionDistance: 0
+            }],
+            name: "test_existing",
+            relatedSubreddits: []
+        };
+
+        crawler._writeSubreddit("existing", existingSubredditData);
+
+        var existingSubredditData2 = {
+            url: "/r/existing2",
+            tags: [{
+                tag: "existingTag",
+                mentionDistance: 0
+            }],
+            name: "test_existing2",
+            relatedSubreddits: []
+        };
+
+        crawler._writeSubreddit("existing2", existingSubredditData2);
+
+        // When
+        var tags = recommend._getAllTags();
+
+        // Then
+        equalTo(tags.length, 1);
+        equalTo(tags[0], "existingTag");
+    });
 });
 
 describe('Testing getRankedSubredditsForTags', () => {
-
-    it('getRankedSubredditsForTags outputs expected value', () => {
-
+    beforeEach(() => {
+        createCleanDir(testDir);
     });
 
-    it('getRankedSubredditsForTags throws an error when expected', () => {
-
+    afterEach(() => {
+        deleteDir(testDir);
     });
 
-    it('getRankedSubredditsForTags does this if the subreddit does not exists', () => {
+    it('getRankedSubredditsForTags_getMostRelevantForTagQuanitity', () => {
+        // Given
+        var i;
+        for (i = 0; i < 10; i++) {
+            var tags = [];
+            var j;
+            for (j = 0; j < i; j++) {
+                tags.push({
+                    tag: "tag" + j,
+                    mentionDistance: 0
+                });
+            }
+            var existingSubredditData = {
+                url: "/r/subreddit" + i,
+                tags: tags,
+                name: "test_subreddit" + i,
+                relatedSubreddits: [],
+                total_subscribers: 1
+            };
 
+            crawler._writeSubreddit("subreddit" + i, existingSubredditData);
+        }
+
+        // When
+        var subreddits = recommend._getRankedSubredditsForTags(
+            10, ["tag0", "tag1", "tag2", "tag3", "tag4", "tag5", "tag6", "tag7", "tag8"]);
+
+        // Then
+        equalTo(subreddits.length, 10);
+        for (i = 0; i < subreddits.length; i++) {
+            equalTo(subreddits[i].subreddit, "/r/subreddit" + (9 - i));
+        }
     });
 
+    it('getRankedSubredditsForTags_getMostRelevantForTagSum', () => {
+        // Given
+        var i;
+        for (i = 0; i < 10; i++) {
+            var tags = [];
+            var j;
+            for (j = 0; j < 3; j++) {
+                tags.push({
+                    tag: "tag" + j,
+                    mentionDistance: i
+                });
+            }
+            var existingSubredditData = {
+                url: "/r/subreddit" + i,
+                tags: tags,
+                name: "test_subreddit" + i,
+                relatedSubreddits: [],
+                total_subscribers: 1
+            };
+
+            crawler._writeSubreddit("subreddit" + i, existingSubredditData);
+        }
+
+        // When
+        var subreddits = recommend._getRankedSubredditsForTags(
+            10, ["tag0", "tag1", "tag2"]);
+
+        // Then
+        equalTo(subreddits.length, 10);
+        for (i = 0; i < subreddits.length; i++) {
+            equalTo(subreddits[i].subreddit, "/r/subreddit" + i);
+        }
+    });
+
+    it('getRankedSubredditsForTags_getMostRelevantForTagDistance', () => {
+        // Given
+        var i;
+        for (i = 0; i < 10; i++) {
+            var tags = [];
+            tags.push({
+                tag: "tag0",
+                mentionDistance: i
+            });
+            tags.push({
+                tag: "tag1",
+                mentionDistance: 100 - i
+            });
+            var existingSubredditData = {
+                url: "/r/subreddit" + i,
+                tags: tags,
+                name: "test_subreddit" + i,
+                relatedSubreddits: [],
+                total_subscribers: 1
+            };
+
+            crawler._writeSubreddit("subreddit" + i, existingSubredditData);
+        }
+
+        // When
+        var subreddits = recommend._getRankedSubredditsForTags(
+            10, ["tag0", "tag1"]);
+
+        // Then
+        equalTo(subreddits.length, 10);
+        for (i = 0; i < subreddits.length; i++) {
+            equalTo(subreddits[i].subreddit, "/r/subreddit" + i);
+        }
+    });
+
+    it('getRankedSubredditsForTags_getMostRelevantForSubscriberCount', () => {
+        // Given
+        var i;
+        for (i = 0; i < 10; i++) {
+            var existingSubredditData = {
+                url: "/r/subreddit" + i,
+                tags: [{
+                    tag: "tag0",
+                    mentionDistance: 0
+                }],
+                name: "test_subreddit" + i,
+                relatedSubreddits: [],
+                total_subscribers: i
+            };
+
+            crawler._writeSubreddit("subreddit" + i, existingSubredditData);
+        }
+
+        // When
+        var subreddits = recommend._getRankedSubredditsForTags(
+            10, ["tag0"]);
+
+        // Then
+        equalTo(subreddits.length, 10);
+        for (i = 0; i < subreddits.length; i++) {
+            equalTo(subreddits[i].subreddit, "/r/subreddit" + (9 - i));
+        }
+    });
 });
