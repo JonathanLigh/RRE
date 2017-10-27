@@ -17,6 +17,6 @@ module.exports = {
         return matches;
     },
     getNameFromURL: function(url) {
-        return url.replace(/^\/?r\/|\//g, '').toLowerCase();
+        return url.replace(/^\/?r\/|\//gi, '').toLowerCase();
     }
 }

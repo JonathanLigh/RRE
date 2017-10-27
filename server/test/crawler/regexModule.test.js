@@ -18,15 +18,26 @@ describe('Testing getListOfMatches', () => {
 
     it('whenHasMatches_getListOfMatches_returnMatches', () => {
         // Given
+        var search = "abcd";
+
+        // When
+        var matches = regex.getListOfMatches(search, /a/g);
+
+        // Then
+        equalTo(matches.length, 1);
+        equalTo(matches[0], "a");
+    });
+
+    it('whenHasMultipleMatches_getListOfMatches_returnOnlyUniqueMatches', () => {
+        // Given
         var search = "abcda";
 
         // When
         var matches = regex.getListOfMatches(search, /a/g);
 
         // Then
-        equalTo(matches.length, 2);
+        equalTo(matches.length, 1);
         equalTo(matches[0], "a");
-        equalTo(matches[1], "a");
     });
 
     it('whenHasMatches_excludeValue_getListOfMatches_returnMatchesExceptExclude', () => {
@@ -53,7 +64,7 @@ describe('Testing getNameFromURL', () => {
         var name = regex.getNameFromURL(url);
 
         // Then
-        equalTo(url, "name");
+        equalTo(name, "name");
     });
 
     it('whenUrlBeginingSlash_getNameFromURL_returnName', () => {
@@ -64,7 +75,7 @@ describe('Testing getNameFromURL', () => {
         var name = regex.getNameFromURL(url);
 
         // Then
-        equalTo(url, "name");
+        equalTo(name, "name");
     });
 
     it('whenUrlEndSlash_getNameFromURL_returnName', () => {
@@ -75,7 +86,7 @@ describe('Testing getNameFromURL', () => {
         var name = regex.getNameFromURL(url);
 
         // Then
-        equalTo(url, "name");
+        equalTo(name, "name");
     });
 
     it('whenUrlBothSlashs_getNameFromURL_returnName', () => {
@@ -86,17 +97,6 @@ describe('Testing getNameFromURL', () => {
         var name = regex.getNameFromURL(url);
 
         // Then
-        equalTo(url, "name");
-    });
-
-    it('whenUrlManySlashs_getNameFromURL_returnName', () => {
-        // Given
-        var url = "////r/name////";
-
-        // When
-        var name = regex.getNameFromURL(url);
-
-        // Then
-        equalTo(url, "name");
+        equalTo(name, "name");
     });
 });

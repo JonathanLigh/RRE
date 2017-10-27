@@ -2,7 +2,8 @@ const chai = require('chai');
 const spies = require('chai-spies');
 chai.use(spies);
 const equalTo = chai.assert.strictEqual;
-const recommend = require('../../crawler/recommend.js')
+var recommend = require('../../crawler/recommend.js')
+var crawler = require('../../crawler/crawler');
 var fs = require('fs');
 
 var testDir = crawler.parsedSubredditDir(true);
