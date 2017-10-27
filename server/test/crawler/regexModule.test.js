@@ -1,7 +1,7 @@
 const chai = require('chai');
 const spies = require('chai-spies');
 chai.use(spies);
-const expect = chai.expect;
+const equalTo = chai.assert.strictEqual;
 var regex = require('../../crawler/regexModule')
 
 describe('Testing getListOfMatches', () => {
@@ -13,7 +13,7 @@ describe('Testing getListOfMatches', () => {
         var matches = regex.getListOfMatches(search, /x/g);
 
         // Then
-        expect(matches.length, 0);
+        equalTo(matches.length, 0);
     });
 
     it('whenHasMatches_getListOfMatches_returnMatches', () => {
@@ -24,9 +24,9 @@ describe('Testing getListOfMatches', () => {
         var matches = regex.getListOfMatches(search, /a/g);
 
         // Then
-        expect(matches.length, 2);
-        expect(matches[0], "a");
-        expect(matches[1], "a");
+        equalTo(matches.length, 2);
+        equalTo(matches[0], "a");
+        equalTo(matches[1], "a");
     });
 
     it('whenHasMatches_excludeValue_getListOfMatches_returnMatchesExceptExclude', () => {
@@ -37,10 +37,10 @@ describe('Testing getListOfMatches', () => {
         var matches = regex.getListOfMatches(search, /\w/g, "a");
 
         // Then
-        expect(matches.length, 3);
-        expect(matches[0], "b");
-        expect(matches[1], "c");
-        expect(matches[2], "d");
+        equalTo(matches.length, 3);
+        equalTo(matches[0], "b");
+        equalTo(matches[1], "c");
+        equalTo(matches[2], "d");
     });
 });
 
@@ -53,7 +53,7 @@ describe('Testing getNameFromURL', () => {
         var name = regex.getNameFromURL(url);
 
         // Then
-        expect(url, "name");
+        equalTo(url, "name");
     });
 
     it('whenUrlBeginingSlash_getNameFromURL_returnName', () => {
@@ -64,7 +64,7 @@ describe('Testing getNameFromURL', () => {
         var name = regex.getNameFromURL(url);
 
         // Then
-        expect(url, "name");
+        equalTo(url, "name");
     });
 
     it('whenUrlEndSlash_getNameFromURL_returnName', () => {
@@ -75,7 +75,7 @@ describe('Testing getNameFromURL', () => {
         var name = regex.getNameFromURL(url);
 
         // Then
-        expect(url, "name");
+        equalTo(url, "name");
     });
 
     it('whenUrlBothSlashs_getNameFromURL_returnName', () => {
@@ -86,7 +86,7 @@ describe('Testing getNameFromURL', () => {
         var name = regex.getNameFromURL(url);
 
         // Then
-        expect(url, "name");
+        equalTo(url, "name");
     });
 
     it('whenUrlManySlashs_getNameFromURL_returnName', () => {
@@ -97,6 +97,6 @@ describe('Testing getNameFromURL', () => {
         var name = regex.getNameFromURL(url);
 
         // Then
-        expect(url, "name");
+        equalTo(url, "name");
     });
 });

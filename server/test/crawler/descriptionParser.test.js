@@ -1,7 +1,7 @@
 const chai = require('chai');
 const spies = require('chai-spies');
 chai.use(spies);
-const expect = chai.expect;
+const equalTo = chai.assert.strictEqual;
 var descriptionParser = require('../../crawler/descriptionParser')
 
 describe('Testing cleanDescription', () => {
@@ -14,7 +14,7 @@ describe('Testing cleanDescription', () => {
         var cleanDescription = descriptionParser._cleanDescription(description);
 
         // Then
-        expect(cleanDescription, " and some other words");
+        equalTo(cleanDescription, " and some other words");
     });
 
     it('whenContainsURLAndSubreddit_cleanDescription_urlRemoved_subredditRemains', () => {
@@ -25,7 +25,7 @@ describe('Testing cleanDescription', () => {
         var cleanDescription = descriptionParser._cleanDescription(description);
 
         // Then
-        expect(cleanDescription, " and a subreddit /r/subreddit");
+        equalTo(cleanDescription, " and a subreddit /r/subreddit");
     });
 });
 
@@ -38,6 +38,6 @@ describe('Testing getMentionedSubreddits', () => {
         var subreddits = descriptionParser.getMentionedSubreddits(description);
 
         // Then
-        expect(subreddits.length, 6);
+        equalTo(subreddits.length, 6);
     });
 });

@@ -2,19 +2,28 @@
 const chai = require('chai');
 const spies = require('chai-spies');
 chai.use(spies);
-const expect = chai.expect;
+const equalTo = chai.assert.strictEqual;
 var crawler = require('../../crawler/crawler');
 var fs = require('fs');
 
-/*
-For the first few functions I wrote a bunch of example possible tests
-that you could run. But it's entirely up to you, also it might be possible for
-you to put these tests at the end of the files that they are testing. We can do
-this because our test comand runs "mocha filepath" mocha automatically searches
-for testing syntax and executes them, that means you can have tests in your
-files that only execute during testing. However, I absolutely recomend a great
-refactoring now that we have it functioning. -Jonathan
-*/
+var testDir = crawler.parsedSubredditDir(true);
+
+var deleteDir = function(path) {
+    if (fs.existsSync(path)) {
+        fs.readdirSync(path).forEach(function(file, index) {
+            var curPath = path + "/" + file;
+            fs.unlinkSync(curPath);
+        });
+        fs.rmdirSync(path);
+    }
+};
+
+var createCleanDir = function(path) {
+    if (fs.existsSync(path)) {
+        deleteDir(path);
+    }
+    fs.mkdirSync(testDir);
+};
 
 describe('Testing buildURL', () => {
     it('buildURL_noAfter', () => {
@@ -22,7 +31,7 @@ describe('Testing buildURL', () => {
         var url = crawler._buildURL();
 
         // Then
-        expect(url, "https://www.reddit.com/reddits.json?limit=1");
+        equalTo(url, "https://www.reddit.com/reddits.json?limit=1");
     });
 
     it('buildURL_emptyStringAfter', () => {
@@ -33,7 +42,7 @@ describe('Testing buildURL', () => {
         var url = crawler._buildURL(after);
 
         // Then
-        expect(url, "https://www.reddit.com/reddits.json?limit=1");
+        equalTo(url, "https://www.reddit.com/reddits.json?limit=1");
     });
 
     it('buildURL_validAfter', () => {
@@ -44,17 +53,17 @@ describe('Testing buildURL', () => {
         var url = crawler._buildURL(after);
 
         // Then
-        expect(url, "https://www.reddit.com/reddits.json?limit=1&after=test");
+        equalTo(url, "https://www.reddit.com/reddits.json?limit=1&after=test");
     });
 });
 
 describe('Testing writeSubreddit', () => {
     beforeEach(() => {
-        fs.mkdirSync("../../crawler" + crawler.parsedSubredditFolder(true));
+        createCleanDir(testDir);
     });
 
     afterEach(() => {
-        fs.unlinkSync("../../crawler" + crawler.parsedSubredditFolder(true));
+        deleteDir(testDir);
     });
 
     it('whenNewData_writeSubreddit_fileCreated', () => {
@@ -68,9 +77,9 @@ describe('Testing writeSubreddit', () => {
         crawler._writeSubreddit(fileName, data);
 
         // Then
-        expect(fs.existsSync(crawler.parsedSubredditFolder(true) + fileName + ".json"), true);
-        var readData = fs.readFileSync(parsedSubredditFolder(true) + fileName + ".json");
-        expect(readData.test, data.test);
+        equalTo(fs.existsSync(testDir + fileName + ".json"), true);
+        var readData = JSON.parse(fs.readFileSync(testDir + fileName + ".json"));
+        equalTo(readData.test, data.test);
     });
 
     it('whenExistingData_writeSubreddit_fileUpdated', () => {
@@ -88,9 +97,9 @@ describe('Testing writeSubreddit', () => {
         crawler._writeSubreddit(fileName, updateData);
 
         // Then
-        expect(fs.existsSync(crawler.parsedSubredditFolder(true) + fileName + ".json"), true);
-        var readData = fs.readFileSync(parsedSubredditFolder(true) + fileName + ".json");
-        expect(readData.test, data.test);
+        equalTo(fs.existsSync(testDir + fileName + ".json"), true);
+        var readData = JSON.parse(fs.readFileSync(testDir + fileName + ".json"));
+        equalTo(readData.test, updateData.test);
     });
 
 });
@@ -111,9 +120,9 @@ describe('Testing updateTag', () => {
         var updated = crawler._updateTag(subredditData, newTag, depth);
 
         // Then
-        expect(updated, true);
-        expect(subredditData.tags.length, 1);
-        expect(subredditData.tags[0].tag, newTag.tag);
+        equalTo(updated, true);
+        equalTo(subredditData.tags.length, 1);
+        equalTo(subredditData.tags[0].tag, newTag.tag);
     });
 
     it('whenTagExists_updateTag_closerDistance_tagUpdated', () => {
@@ -134,10 +143,10 @@ describe('Testing updateTag', () => {
         var updated = crawler._updateTag(subredditData, newTag, depth);
 
         // Then
-        expect(updated, true);
-        expect(subredditData.tags.length, 1);
-        expect(subredditData.tags[0].tag, newTag.tag);
-        expect(subredditData.tags[0].mentionDistance, depth);
+        equalTo(updated, true);
+        equalTo(subredditData.tags.length, 1);
+        equalTo(subredditData.tags[0].tag, newTag.tag);
+        equalTo(subredditData.tags[0].mentionDistance, depth);
     });
 
     it('whenTagExists_updateTag_fartherDistance_tagNotUpdated', () => {
@@ -158,19 +167,19 @@ describe('Testing updateTag', () => {
         var updated = crawler._updateTag(subredditData, newTag, depth);
 
         // Then
-        expect(updated, false);
-        expect(subredditData.tags.length, 1);
-        expect(subredditData.tags[0].mentionDistance, 0);
+        equalTo(updated, false);
+        equalTo(subredditData.tags.length, 1);
+        equalTo(subredditData.tags[0].mentionDistance, 0);
     });
 });
 
 describe('Testing propogateSubredditData', () => {
     beforeEach(() => {
-        fs.mkdirSync("../../crawler" + crawler.parsedSubredditFolder(true));
+        createCleanDir(testDir);
     });
 
     afterEach(() => {
-        fs.unlinkSync("../../crawler" + crawler.parsedSubredditFolder(true));
+        deleteDir(testDir);
     });
 
     it('whenNewSubreddit_propogateSubredditData_oneRelation_createsRelation_createsTags', () => {
@@ -194,23 +203,23 @@ describe('Testing propogateSubredditData', () => {
         crawler._propagateSubredditData(subredditURL, parentSubredditData, depth, searched);
 
         // Then
-        expect(fs.existsSync(crawler.parsedSubredditFolder(true) + "child.json"), true);
-        expect(fs.existsSync(crawler.parsedSubredditFolder(true) + "parent.json"), true);
+        equalTo(fs.existsSync(testDir + "child.json"), true);
+        equalTo(fs.existsSync(testDir + "parent.json"), true);
 
-        var childData = fs.readFileSync(parsedSubredditFolder(true) + "child.json");
-        var parentData = fs.readFileSync(parsedSubredditFolder(true) + "parent.json");
+        var childData = JSON.parse(fs.readFileSync(testDir + "child.json"));
+        var parentData = JSON.parse(fs.readFileSync(testDir + "parent.json"));
 
-        expect(childData.relatedSubreddits.length, 1);
-        expect(childData.relatedSubreddits[0], "r/parent");
-        expect(childData.tags.length, 1);
-        expect(childData.tags[0].tag, "tag");
-        expect(childData.tags[0].mentionDistance, 1);
+        equalTo(childData.relatedSubreddits.length, 1);
+        equalTo(childData.relatedSubreddits[0], "r/parent");
+        equalTo(childData.tags.length, 1);
+        equalTo(childData.tags[0].tag, "tag");
+        equalTo(childData.tags[0].mentionDistance, 1);
 
-        expect(parentData.relatedSubreddits.length, 1);
-        expect(parentData.relatedSubreddits[0], "r/child");
-        expect(parentData.tags.length, 1);
-        expect(parentData.tags[0].tag, "tag");
-        expect(parentData.tags[0].mentionDistance, 0);
+        equalTo(parentData.relatedSubreddits.length, 1);
+        equalTo(parentData.relatedSubreddits[0], "r/child");
+        equalTo(parentData.tags.length, 1);
+        equalTo(parentData.tags[0].tag, "tag");
+        equalTo(parentData.tags[0].mentionDistance, 0);
     });
 
     it('whenExistingSubredditWithTags_propogateSubredditData_oneRelation_createsRelation_updatesAndPropagatesTags', () => {
@@ -246,37 +255,37 @@ describe('Testing propogateSubredditData', () => {
         crawler._propagateSubredditData(subredditURL, parentSubredditData, depth, searched);
 
         // Then
-        expect(fs.existsSync(crawler.parsedSubredditFolder(true) + "existing.json"), true);
-        expect(fs.existsSync(crawler.parsedSubredditFolder(true) + "parent.json"), true);
+        equalTo(fs.existsSync(testDir + "existing.json"), true);
+        equalTo(fs.existsSync(testDir + "parent.json"), true);
 
-        var existingData = fs.readFileSync(parsedSubredditFolder(true) + "existing.json");
-        var parentData = fs.readFileSync(parsedSubredditFolder(true) + "parent.json");
+        var existingData = JSON.parse(fs.readFileSync(testDir + "existing.json"));
+        var parentData = JSON.parse(fs.readFileSync(testDir + "parent.json"));
 
-        expect(existingData.relatedSubreddits.length, 1);
-        expect(existingData.relatedSubreddits[0], "r/parent");
-        expect(existingData.tags.length, 2);
-        expect(existingData.tags[0].tag, "existingTag");
-        expect(existingData.tags[0].mentionDistance, 0);
-        expect(existingData.tags[0].tag, "parentTag");
-        expect(existingData.tags[0].mentionDistance, 1);
+        equalTo(existingData.relatedSubreddits.length, 1);
+        equalTo(existingData.relatedSubreddits[0], "r/parent");
+        equalTo(existingData.tags.length, 2);
+        equalTo(existingData.tags[0].tag, "existingTag");
+        equalTo(existingData.tags[0].mentionDistance, 0);
+        equalTo(existingData.tags[1].tag, "parentTag");
+        equalTo(existingData.tags[1].mentionDistance, 1);
 
-        expect(parentData.relatedSubreddits.length, 1);
-        expect(parentData.relatedSubreddits[0], "r/existing");
-        expect(parentData.tags.length, 2);
-        expect(parentData.tags[0].tag, "parentTag");
-        expect(parentData.tags[0].mentionDistance, 0);
-        expect(parentData.tags[0].tag, "existingTag");
-        expect(parentData.tags[0].mentionDistance, 2);
+        equalTo(parentData.relatedSubreddits.length, 1);
+        equalTo(parentData.relatedSubreddits[0], "r/existing");
+        equalTo(parentData.tags.length, 2);
+        equalTo(parentData.tags[0].tag, "parentTag");
+        equalTo(parentData.tags[0].mentionDistance, 0);
+        equalTo(parentData.tags[1].tag, "existingTag");
+        equalTo(parentData.tags[1].mentionDistance, 2);
     });
 });
 
 describe('Testing parseSubreddit', () => {
     beforeEach(() => {
-        fs.mkdirSync("../../crawler" + crawler.parsedSubredditFolder(true));
+        createCleanDir(testDir);
     });
 
     afterEach(() => {
-        fs.unlinkSync("../../crawler" + crawler.parsedSubredditFolder(true));
+        deleteDir(testDir);
     });
 
     it('whenCreatingSubreddit_parseSubreddit_subredditCreated', () => {
@@ -293,15 +302,15 @@ describe('Testing parseSubreddit', () => {
         crawler._parseSubreddit(subreddit);
 
         // Then
-        expect(fs.existsSync(crawler.parsedSubredditFolder(true) + "parent.json"), true);
+        equalTo(fs.existsSync(testDir + "parent.json"), true);
 
-        var parentData = fs.readFileSync(parsedSubredditFolder(true) + "parent.json");
+        var parentData = JSON.parse(fs.readFileSync(testDir + "parent.json"));
 
-        expect(parentData.relatedSubreddits.length, 0);
-        expect(parentData.tags.length, 0);
-        expect(parentData.url, "/r/parent");
-        expect(parentData.name, "test_parent");
-        expect(parentData.total_subscribers, 1);
+        equalTo(parentData.relatedSubreddits.length, 0);
+        equalTo(parentData.tags.length, 0);
+        equalTo(parentData.url, "/r/parent");
+        equalTo(parentData.name, "test_parent");
+        equalTo(parentData.total_subscribers, 1);
     });
 
     it('whenCreatingSubreddit_withAudienceTarget_parseSubreddit_subredditUpdated', () => {
@@ -318,17 +327,17 @@ describe('Testing parseSubreddit', () => {
         crawler._parseSubreddit(subreddit);
 
         // Then
-        expect(fs.existsSync(crawler.parsedSubredditFolder(true) + "parent.json"), true);
+        equalTo(fs.existsSync(testDir + "parent.json"), true);
 
-        var parentData = fs.readFileSync(parsedSubredditFolder(true) + "parent.json");
+        var parentData = JSON.parse(fs.readFileSync(testDir + "parent.json"));
 
-        expect(parentData.relatedSubreddits.length, 0);
-        expect(parentData.tags.length, 1);
-        expect(parentData.tags[0].tag, "tag");
-        expect(parentData.tags[0].mentionDistance, 0);
-        expect(parentData.url, "/r/parent");
-        expect(parentData.name, "test_parent");
-        expect(parentData.total_subscribers, 1);
+        equalTo(parentData.relatedSubreddits.length, 0);
+        equalTo(parentData.tags.length, 1);
+        equalTo(parentData.tags[0].tag, "tag");
+        equalTo(parentData.tags[0].mentionDistance, 0);
+        equalTo(parentData.url, "/r/parent");
+        equalTo(parentData.name, "test_parent");
+        equalTo(parentData.total_subscribers, 1);
     });
 
     it('whenCreatingSubreddit_withDescription_parseSubreddit_subredditUpdated', () => {
@@ -345,25 +354,25 @@ describe('Testing parseSubreddit', () => {
         crawler._parseSubreddit(subreddit);
 
         // Then
-        expect(fs.existsSync(crawler.parsedSubredditFolder(true) + "parent.json"), true);
+        equalTo(fs.existsSync(testDir + "parent.json"), true);
 
-        var parentData = fs.readFileSync(parsedSubredditFolder(true) + "parent.json");
+        var parentData = JSON.parse(fs.readFileSync(testDir + "parent.json"));
 
-        expect(parentData.relatedSubreddits.length, 1);
-        expect(parentData.relatedSubreddits[0], "r/child");
-        expect(parentData.tags.length, 0);
-        expect(parentData.url, "/r/parent");
-        expect(parentData.name, "test_parent");
-        expect(parentData.total_subscribers, 1);
+        equalTo(parentData.relatedSubreddits.length, 1);
+        equalTo(parentData.relatedSubreddits[0], "r/child");
+        equalTo(parentData.tags.length, 0);
+        equalTo(parentData.url, "/r/parent");
+        equalTo(parentData.name, "test_parent");
+        equalTo(parentData.total_subscribers, 1);
 
-        expect(fs.existsSync(crawler.parsedSubredditFolder(true) + "child.json"), true);
+        equalTo(fs.existsSync(testDir + "child.json"), true);
 
-        var childData = fs.readFileSync(parsedSubredditFolder(true) + "child.json");
+        var childData = JSON.parse(fs.readFileSync(testDir + "child.json"));
 
-        expect(childData.relatedSubreddits.length, 1);
-        expect(childData.relatedSubreddits[0], "r/parent");
-        expect(childData.tags.length, 0);
-        expect(childData.url, "r/child");
+        equalTo(childData.relatedSubreddits.length, 1);
+        equalTo(childData.relatedSubreddits[0], "r/parent");
+        equalTo(childData.tags.length, 0);
+        equalTo(childData.url, "r/child");
     });
 
     it('whenUpdatingSubreddit_parseSubreddit_subredditUpdated', () => {
@@ -388,14 +397,14 @@ describe('Testing parseSubreddit', () => {
         crawler._parseSubreddit(subreddit);
 
         // Then
-        expect(fs.existsSync(crawler.parsedSubredditFolder(true) + "parent.json"), true);
+        equalTo(fs.existsSync(testDir + "parent.json"), true);
 
-        var parentData = fs.readFileSync(parsedSubredditFolder(true) + "parent.json");
+        var parentData = JSON.parse(fs.readFileSync(testDir + "parent.json"));
 
-        expect(parentData.relatedSubreddits.length, 0);
-        expect(parentData.tags.length, 0);
-        expect(parentData.url, "/r/parent");
-        expect(parentData.name, "test_parent");
-        expect(parentData.total_subscribers, 1);
+        equalTo(parentData.relatedSubreddits.length, 0);
+        equalTo(parentData.tags.length, 0);
+        equalTo(parentData.url, "/r/parent");
+        equalTo(parentData.name, "test_parent");
+        equalTo(parentData.total_subscribers, 1);
     });
 });

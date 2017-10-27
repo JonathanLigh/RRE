@@ -62,8 +62,8 @@ function buildURL(after) {
 function parseSubreddit(subreddit) {
     var subredditData;
     var fileName = regex.getNameFromURL(subreddit.url)
-    if (fileSystem.existsSync("." + parsedSubredditFolder(testingMode) + fileName + ".json")) {
-        subredditData = JSON.parse(fileSystem.readFileSync("." + parsedSubredditFolder(testingMode) + fileName + ".json"));
+    if (fileSystem.existsSync(parsedSubredditDir(testingMode) + fileName + ".json")) {
+        subredditData = JSON.parse(fileSystem.readFileSync(parsedSubredditDir(testingMode) + fileName + ".json"));
         console.log(`Discovered ${subreddit.url}`);
     } else {
         console.log(`Discovered New ${subreddit.url}`);
@@ -91,7 +91,7 @@ function parseSubreddit(subreddit) {
     writeSubreddit(fileName, subredditData);
 
     for (i in subredditData.relatedSubreddits) {
-        console.log("Updating (" + i + "/" + subredditData.relatedSubreddits.length + "): " + subredditData.relatedSubreddits[i]);
+        console.log("Updating (" + (i + 1) + "/" + subredditData.relatedSubreddits.length + "): " + subredditData.relatedSubreddits[i]);
         propagateSubredditData(subredditData.relatedSubreddits[i], subredditData, 1, []);
     }
 
@@ -99,7 +99,7 @@ function parseSubreddit(subreddit) {
 }
 
 function writeSubreddit(fileName, subredditData) {
-    var subredditPath = "." + parsedSubredditFolder(testingMode) + fileName + ".json";
+    var subredditPath = parsedSubredditDir(testingMode) + fileName + ".json";
     fileSystem.writeFileSync(subredditPath, JSON.stringify(subredditData));
 }
 
@@ -119,8 +119,8 @@ function propagateSubredditData(subredditURL, parentSubredditData, depth, search
 
     var subredditData;
     var relatedURL = parentSubredditData.url.replace(/^\/|\/$/g, '');
-    if (fileSystem.existsSync("." + parsedSubredditFolder(testingMode) + fileName + ".json")) {
-        subredditData = JSON.parse(fileSystem.readFileSync("." + parsedSubredditFolder(testingMode) + fileName + ".json"));
+    if (fileSystem.existsSync(parsedSubredditDir(testingMode) + fileName + ".json")) {
+        subredditData = JSON.parse(fileSystem.readFileSync(parsedSubredditDir(testingMode) + fileName + ".json"));
         if (subredditData.relatedSubreddits.indexOf(relatedURL) === -1) {
             subredditData.relatedSubreddits.push(relatedURL);
         }
@@ -213,6 +213,13 @@ exitHook(function() {
     }
 });
 
+const parsedSubredditDir = (testing) => {
+    if (testing) {
+        return "./server/crawler/parsed_subreddits_test/";
+    }
+    return "./parsed_subreddits/";
+};
+
 module.exports = {
     crawl: function(size) {
         if (size > 100) {
@@ -229,12 +236,7 @@ module.exports = {
             continueSearch(after);
         });
     },
-    parsedSubredditFolder: function(testing) {
-        if (testing) {
-            return "/parsed_subreddits_test/";
-        }
-        return "/parsed_subreddits/";
-    },
+    parsedSubredditDir: parsedSubredditDir,
     _buildURL: function(after) {
         testingMode = true;
         return buildURL(after);
