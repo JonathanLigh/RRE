@@ -17,9 +17,15 @@ router.param('tagId', function(req, res, next, id) {
         .catch(next);
 });
 
+// responds with all tags in the database
+// we will need to be able to serve this up to users so they can add existing
+// tags to their prefered tags.
 router.get('/', function (req, res, next) {
   Tag.find({}).exec()
-  .then(tags => res.json(tags))
+  .then(tags => {
+    // sets the status of the response to sucessful and sends the tags
+    res.status(200).json(tags);
+  })
   .catch(next);
 });
 
@@ -34,38 +40,6 @@ router.get('/name/:tagName', function (req, res, next) {
 router.get('/:tagId', /*add access checking functions here*/ function (req, res, next){
   const status = (req.requestedTag) ? 200 : 404;
     res.status(status).json(req.requestedTag);
-});
-
-router.post('/', /*add access checking functions here*/ function (req, res, next) {
-  Tag.create(req.body)
-  .then(() => {
-    res.status(201);
-    res.json();
-  })
-  .catch(next);
-});
-
-router.put('/:tagId', /*add access checking functions here*/ function (req, res, next){
-  if (req.requestedTag) {
-    req.requestedTag.update(req.body)
-  .then(() => {
-    res.status(202);
-    res.json();
-  })
-  .catch(next);
-} else {
-  res.status(404).send('Unable to update nonexistent tag');
-}
-});
-
-router.delete('/:tagId', /*add access checking functions here*/ function (req, res, next) {
-  if (req.requestedTag) {
-    req.requestedTag.remove()
-    .then(() => res.status(204).end())
-    .catch(next);
-  } else {
-    res.status(404).send('Unable to delete nonexistent tag');
-  }
 });
 
 module.exports = router;

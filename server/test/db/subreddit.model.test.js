@@ -2,6 +2,7 @@ const chai = require('chai');
 const spies = require('chai-spies');
 chai.use(spies);
 const assert = chai.assert;
+const expect = chai.expect;
 
 const models = require('../../db/models');
 const Subreddit = models.Subreddit;
@@ -52,24 +53,40 @@ describe('Subreddit Model', () => {
 
   describe('query helpers', () => {
     describe('Testing getTagsBySubreddits', () => {
-      it('getTagsBySubreddits', () => {
-        Subreddit.find().getTagsBySubreddits(['/r/SRTest1','/r/SRTest2']).exec(function (err, res) {
-          return res = res.reduce((a, b) => a.concat(b), []);
+      it('it gets all tags from all subreddit names in argument', () => {
+        Subreddit.find().getTagsBySubreddits(['/r/SRTest1','/r/SRTest2'])
+        .exec(function (err, res) {
+          return res
         })
-        .then(res => {
-          console.log(res);
+        .then(list => {
+          var list = list.map(element => element.tags)
+          .reduce((a, b) => a.concat(b), []);
+          expect(list.length).to.be.equal(10)
+        })
+      });
+
+      it('it gets no tags if no subreddits are in argument', () => {
+        Subreddit.find().getTagsBySubreddits([''])
+        .exec(function (err, res) {
+          return res
+        })
+        .then(list => {
+          var list = list.map(element => element.tags)
+          .reduce((a, b) => a.concat(b), []);
+          expect(list.length).to.be.equal(0)
         })
       });
     });
-  });
 
-  describe('getSubredditsByTags', () => {
+    //this can wait for when we incorporate the algorithm into the backend routes
+    // describe('Testing getSubredditsByTags', () => {
 
-    // Test Case
-    it('returns the firstName and lastName combined by a space', () => {
+    //   // Test Case
+    //   it('will', () => {
 
 
-    });
+    //   });
+    // });
   });
  });
 

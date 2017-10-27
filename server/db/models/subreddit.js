@@ -30,10 +30,12 @@ takes:
 returns:
   query to be executed that will return the most related subreddits
 */
+
 subredditSchema.query.getSubredditsByTags = function(excludedSRNames, tagNames) {
+
   return this.find({
     name: { "$nin": excludedSRNames },
-    tags: [{ //no idea if this syntax is legal it compiles, so it might be
+    tags: [{
       name: {$in: tagNames },
       distance: {$leq: 5}    //arbitrary number, can be tweeked
       }],

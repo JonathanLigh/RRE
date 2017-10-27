@@ -14,15 +14,21 @@ returns the top 5 recommended subreddits
 */
 router.get('/recommended', function (req, res, next) {
 
-  // if we recieve the
   Subreddit.getTagsBySubreddit(req.body.subreddits)
-  .exec()
+  .exec(function (err, res) {
+    return res
+  })
   .then(tags => {
     print("tags after getting them from every Subreddit: " + tags);
-    return tags = tags.reduce((a, b) => a.concat(b), []);
-  }).then(tags => {
-    tags = tags.concat(req.body.tags);
-    print("tags after concating them with req.body.tags: " + tags);
+    // we then need to process the output from the query helper into
+    // a flat array of tag objects with distance and name values
+    var tags = tags.map(element => element.tags)
+          .reduce((a, b) => a.concat(b), []);
+    return tags
+  }).then(list => {
+
+    list = list.concat(req.body.tags);
+    print("tags after concating them with req.body.tags: " + list);
     return Subreddit.getSubredditsByTags(req.body.blacklist, tags);
   }).then(recSubreddits => {
     res.status(200);
