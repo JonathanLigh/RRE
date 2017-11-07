@@ -1,8 +1,11 @@
-var https = require('https');
-var fileSystem = require('fs');
-var exitHook = require('exit-hook');
+const https = require('https');
+const fileSystem = require('fs');
+const exitHook = require('exit-hook');
 const regex = require('./regexModule');
 const descriptionParser = require('./descriptionParser');
+const models = require('../db/models');
+const Subreddit = models.Subreddit;
+const Tag = models.Tag;
 
 var batchSize = 1;
 
@@ -39,12 +42,15 @@ function getReddits(after) {
             });
         }
 
+        var toExecute = [];
         get_json(buildURL(after, batchSize), function(response) {
             var subreddit;
             for (subreddit in response.data.children) {
-                parseSubreddit(response.data.children[subreddit].data);
+                toExecute.push(parseSubreddit(response.data.children[subreddit].data));
             }
+        });
 
+        Promise.all(toExecute).then(values => {
             resolve(response.data.after);
         });
     });
@@ -61,118 +67,111 @@ function buildURL(after) {
     return url;
 }
 
-function parseSubreddit(subreddit) {
-    var subredditData;
-    var fileName = regex.getNameFromURL(subreddit.url)
-    if (fileSystem.existsSync(parsedSubredditDir(testingMode) + fileName + ".json")) {
-        subredditData = JSON.parse(fileSystem.readFileSync(parsedSubredditDir(testingMode) + fileName + ".json"));
-        console.log(`Discovered ${subreddit.url}`);
-    } else {
-        console.log(`Discovered New ${subreddit.url}`);
-        subredditData = {
-            tags: []
+function parseSubreddit(subredditData) {
+    return new Promise(function(resolve, reject) {
+        if (!subreddit) {
+            reject("No data was provided");
         }
-    }
+        Subreddit.findOrCreate({
+            url: subredditData.url,
+            tags: []
+        }).exec().then(subreddit => {
+            subreddit.numSubscribers = subredditData.subscribers;
 
-    subredditData.url = subreddit.url;
-    subredditData.name = subreddit.name;
-    subredditData.total_subscribers = subreddit.subscribers;
+            const csvMatcher = /\b[\w\s]+\b/gi;
+            var tags = regex.getListOfMatches(subredditData.audience_target, csvMatcher);
+            var i;
+            for (i in tags) {
+                updateTag(subreddit, {
+                    tag: tags[i],
+                    mentionDistance: 0
+                }, 0);
+            }
 
-    const csvMatcher = /\b[\w\s]+\b/gi;
-    var tags = regex.getListOfMatches(subreddit.audience_target, csvMatcher);
-    var i;
-    for (i in tags) {
-        updateTag(subredditData, {
-            tag: tags[i],
-            mentionDistance: 0
-        }, 0);
-    }
+            subreddit._relatedSubreddits = descriptionParser.getMentionedSubreddits(subredditData);
 
-    subredditData.relatedSubreddits = descriptionParser.getMentionedSubreddits(subreddit);
+            updateSubreddit(subreddit, function() {
+                for (i = 0; i < subreddit._relatedSubreddits.length; i++) {
+                    var subredditURL = subreddit._relatedSubreddits[i];
+                    console.log("Updating (" + (i + 1) + "/" + subreddit._relatedSubreddits.length + "): " + subredditURL);
+                    propagateSubredditData(subredditURL, subreddit, 1, []);
+                }
 
-    writeSubreddit(fileName, subredditData);
+                console.log(`Finished ${subredditData.url}`);
 
-    for (i = 0; i < subredditData.relatedSubreddits.length; i++) {
-        console.log("Updating (" + (i + 1) + "/" + subredditData.relatedSubreddits.length + "): " + subredditData.relatedSubreddits[i]);
-        propagateSubredditData(subredditData.relatedSubreddits[i], subredditData, 1, []);
-    }
-
-    console.log(`Finished ${subreddit.url}`);
+                resolve();
+            });
+        });
+    });
 }
 
-function writeSubreddit(fileName, subredditData) {
-    var subredditPath = parsedSubredditDir(testingMode) + fileName + ".json";
-    fileSystem.writeFileSync(subredditPath, JSON.stringify(subredditData));
+function updateSubreddit(subreddit, callback) {
+    Subreddit.update({
+        url: subreddit.url
+    }, {
+        tags: subreddit.tags,
+        numSubscribers: subreddit.numSubscribers,
+        _relatedSubreddits: subreddit._relatedSubreddits
+    }).exec().then(updatedSubreddit => {
+        callback(updatedSubreddit);
+    });
 }
 
-function propagateSubredditData(subredditURL, parentSubredditData, depth, searched) {
+function propagateSubredditData(subredditURL, parentSubreddit, depth, searched) {
+    // subredditURL is expected to be in the form of '/r/name'
+
     // Statistical analysis
     if (state.maxDepthReached < depth) {
         state.maxDepthReached = depth;
         state.maxDepthSubreddit = subredditURL;
     }
-    // This is really inefficient but that is because the db isnt ready yet
-    var fileName = regex.getNameFromURL(subredditURL);
 
     // Handle self referential loops
-    if (searched.indexOf(fileName) !== -1) {
+    if (searched.indexOf(subredditURL) !== -1) {
         return;
     }
 
-    var subredditData;
-    var relatedURL = parentSubredditData.url.replace(/^\/|\/$/g, '');
-    var existed = fileSystem.existsSync(parsedSubredditDir(testingMode) + fileName + ".json");
-    if (existed) {
-        if (logging) {
-            console.log("Updating Subreddit: " + subredditURL);
+    Subreddit.findOrCreate({
+        url: subredditURL,
+        tags: [],
+        _relatedSubreddits: [parentSubreddit.url]
+    }).exec().then(subreddit => {
+        // subreddit was either found or created, we want to update tags regardless next.
+        var updatedTags = false;
+        var i;
+        for (i in parentSubreddit.tags) {
+            updatedTags = updatedTags || updateTag(subreddit, parentSubreddit.tags[i], depth);
         }
-        subredditData = JSON.parse(fileSystem.readFileSync(parsedSubredditDir(testingMode) + fileName + ".json"));
-        if (subredditData.relatedSubreddits.indexOf(relatedURL) === -1) {
-            subredditData.relatedSubreddits.push(relatedURL);
-        }
-    } else {
-        if (logging) {
-            console.log("Creating New Subreddit: " + subredditURL);
-        }
-        subredditData = {
-            url: subredditURL,
-            tags: [],
-            relatedSubreddits: [relatedURL]
-        };
-    }
-    var updatedTags = false;
-    var i;
-    for (i in parentSubredditData.tags) {
-        updatedTags = updatedTags || updateTag(subredditData, parentSubredditData.tags[i], depth);
-    }
-    if (updatedTags || !existed) {
-        writeSubreddit(regex.getNameFromURL(subredditURL), subredditData);
-        if (logging) {
-            console.log("Subreddit Saved: " + subredditURL);
-        }
-        if (updatedTags && !!subredditData.relatedSubreddits) {
-            for (i in subredditData.relatedSubreddits) {
-                // we want to update any possible tags that weren't originally referenced.
-                var nextFileName = regex.getNameFromURL(subredditData.relatedSubreddits[i]);
-                var index = searched.indexOf(nextFileName);
-                if (index > -1) {
-                    searched.splice(index, 1);
-                    if (logging) {
-                        console.log("Need to scan " + nextFileName + " again in case changes relate.");
+        if (updatedTags) {
+            // If the tags were modified we should update the subreddit
+            updateSubreddit(subreddit, function(subreddit) {
+                if (!!subreddit._relatedSubreddits) {
+                    for (i in subredditData.relatedSubreddits) {
+                        // we want to update any possible tags that weren't originally referenced.
+                        var nextURL = subreddit._relatedSubreddits[i];
+                        var index = searched.indexOf(nextURL);
+                        if (index > -1) {
+                            searched.splice(index, 1);
+                            if (logging) {
+                                console.log("Need to scan " + nextURL + " again in case changes relate.");
+                            }
+                        }
+                        if (logging) {
+                            console.log(
+                                "Updating (" + i + "/" + subreddit._relatedSubreddits.length + "): " + nextURL
+                            );
+                        }
+                        propagateSubredditData(nextURL, subreddit, depth + 1, searched);
                     }
                 }
-                if (logging) {
-                    console.log("Updating (" + i + "/" + subredditData.relatedSubreddits.length + "): " + subredditData.relatedSubreddits[i]);
-                }
-                propagateSubredditData(subredditData.relatedSubreddits[i], subredditData, depth + 1, searched);
+            });
+        } else {
+            if (logging) {
+                console.log("Finished: " + subredditURL);
             }
+            searched.push(subredditURL);
         }
-    } else {
-        if (logging) {
-            console.log("Finished: " + subredditURL);
-        }
-        searched.push(fileName);
-    }
+    });
 }
 
 // Tags are {tag:"tagName", mentionDistance:X}
@@ -225,10 +224,10 @@ function loadStateJSON(callback) {
 }
 
 exitHook(function() {
-    if (logging) {
-        console.log("Exit Hook Triggered");
-    }
     if (triggerExit) {
+        if (logging) {
+            console.log("Exit Hook Triggered");
+        }
         if (!testingMode) {
             fileSystem.writeFileSync(statePath, JSON.stringify(state));
             console.log("    Crawler terminated, current state saved as " + state.after);
@@ -269,13 +268,13 @@ module.exports = {
         testingMode = true;
         return parseSubreddit(subreddit);
     },
-    _writeSubreddit: function(fileName, subredditData) {
+    _updateSubreddit: function(subredditData, callback) {
         testingMode = true;
-        return writeSubreddit(fileName, subredditData);
+        return updateSubreddit(subredditData, callback);
     },
-    _propagateSubredditData: function(subredditURL, parentSubredditData, depth, searched) {
+    _propagateSubredditData: function(subredditURL, parentSubreddit, depth, searched) {
         testingMode = true;
-        return propagateSubredditData(subredditURL, parentSubredditData, depth, searched);
+        return propagateSubredditData(subredditURL, parentSubreddit, depth, searched);
     },
     _updateTag: function(subredditData, newTag, depth) {
         testingMode = true;

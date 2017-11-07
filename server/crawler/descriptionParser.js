@@ -21,7 +21,10 @@ module.exports = {
             return regex.getListOfMatches(
                 strippedDescription,
                 /r\/\w+/gi, // matches "r/..."
-                subreddit.url.replace(/^\/|\/$/g, '')); // Remove the first '/' and last '/' from '/r/subredditURL'
+                regex.removeSlashesFromSubredditURL(subreddit.url), // Remove the first '/' and last '/' from '/r/subredditURL'
+                function(match) {
+                    match = "/" + match + "/"; // make the match follow the default url format of /r/subredditURL
+                });
         }
         return [];
     },
