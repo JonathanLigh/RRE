@@ -12,6 +12,24 @@ const subredditSchema = new Schema({
 });
 
 /*
+takes:
+  json:
+    The javascript object notation object that represents the exact object you want to find
+  callback:
+    The callback function is... err give me a moment
+*/
+subredditSchema.statics.findOrCreate = function (json, callback) {
+  this.findOne(json, function(err, res){
+    if(res) {
+      callback(err, res);
+    } else {
+      this.create(json, function(err, res){
+        callback(err, res);
+      })
+    }
+  });
+}
+/*
 we do not use ES6 arrow functions here because it prevents binding with "this"
 ref: http://mongoosejs.com/docs/guide.html
 takes:
