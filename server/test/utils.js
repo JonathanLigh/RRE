@@ -5,8 +5,7 @@ function s4() {
 }
 
 module.exports = {
-    uuid: function() {
-        return s4() + s4() + '_' + s4() + '_' + s4() + '_' +
-            s4() + '_' + s4() + s4() + s4();
+    uuid: function(name) {
+        return '/r/' + name + '_' + s4() + s4() + '_' + s4() + '_' + s4() + '_' + s4() + '_' + s4() + s4() + s4() + '/';
     }
 }

@@ -8,7 +8,9 @@ module.exports = {
             }
             m.forEach((match, groupIndex) => {
                 match = match.toLowerCase();
-                callback(match);
+                if (!!callback) {
+                    callback(match);
+                }
                 if (match !== exclude && matches.indexOf(match) === -1) {
                     matches.push(match);
                 }

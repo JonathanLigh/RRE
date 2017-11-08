@@ -49,7 +49,7 @@ describe('Subreddit Operations', () => {
     describe('Testing updateSubreddit', () => {
         it('whenExistingData_updateSubreddit_entryUpdated', () => {
             // Given
-            var subredditURL = "/r/SRTest1" + utils.uuid();
+            var subredditURL = utils.uuid("test");
             Subreddit.create({
                 url: subredditURL,
                 tags: [],
@@ -144,8 +144,8 @@ describe('Subreddit Operations', () => {
     describe('Testing propogateSubredditData', () => {
         it('whenNewSubreddit_propogateSubredditData_oneRelation_createsRelation_createsTags', () => {
             // Given
-            var childSubredditURL = "/r/child/" + utils.uuid();
-            var parentSubredditURL = "/r/parent/" + utils.uuid();
+            var childSubredditURL = utils.uuid("child");
+            var parentSubredditURL = utils.uuid("parent");
             var parentSubredditData = {
                 url: parentSubredditURL,
                 tags: [{
@@ -189,15 +189,16 @@ describe('Subreddit Operations', () => {
 
         it('whenExistingSubredditWithTags_propogateSubredditData_oneRelation_createsRelation_updatesAndPropagatesTags', () => {
             // Given
-            var subredditURL = "/r/existing/";
+            var existingSubredditURL = utils.uuid("existing");
+            var parentSubredditURL = utils.uuid("parent");
+            var subredditURL = existingSubredditURL;
             var parentSubredditData = {
-                url: "/r/parent/",
+                url: parentSubredditURL,
                 tags: [{
                     tag: "parentTag",
                     mentionDistance: 0
                 }],
-                name: "test_parent",
-                relatedSubreddits: ["/r/existing/"]
+                relatedSubreddits: [existingSubredditURL]
             };
             var depth = 1;
             var searched = [];
@@ -209,7 +210,6 @@ describe('Subreddit Operations', () => {
                         tag: "existingTag",
                         mentionDistance: 0
                     }],
-                    name: "test_existing",
                     relatedSubreddits: []
                 };
 
@@ -219,7 +219,7 @@ describe('Subreddit Operations', () => {
 
                     // Then
                     equalTo(existingSubreddit.relatedSubreddits.length, 1);
-                    equalTo(existingSubreddit.relatedSubreddits[0], "r/parent");
+                    equalTo(existingSubreddit.relatedSubreddits[0], parentSubredditURL);
                     equalTo(existingSubreddit.tags.length, 2);
                     equalTo(existingSubreddit.tags[0].tag, "existingTag");
                     equalTo(existingSubreddit.tags[0].mentionDistance, 0);
@@ -227,7 +227,7 @@ describe('Subreddit Operations', () => {
                     equalTo(existingSubreddit.tags[1].mentionDistance, 1);
 
                     equalTo(parentSubreddit.relatedSubreddits.length, 1);
-                    equalTo(parentSubreddit.relatedSubreddits[0], "r/existing");
+                    equalTo(parentSubreddit.relatedSubreddits[0], existingSubredditURL);
                     equalTo(parentSubreddit.tags.length, 2);
                     equalTo(parentSubreddit.tags[0].tag, "parentTag");
                     equalTo(parentSubreddit.tags[0].mentionDistance, 0);
@@ -243,11 +243,10 @@ describe('Subreddit Operations', () => {
     describe('Testing parseSubreddit', () => {
         it('whenCreatingSubreddit_parseSubreddit_subredditCreated', () => {
             // Given
-            var subredditURL = "/r/new/";
+            var subredditURL = utils.uuid("new");
             var subreddit = {
                 url: subredditURL,
                 audience_target: "",
-                name: "test_new",
                 subscribers: 1,
                 description: ""
             }
@@ -266,8 +265,7 @@ describe('Subreddit Operations', () => {
                 equalTo(createdSubreddit.relatedSubreddits.length, 0);
                 equalTo(createdSubreddit.tags.length, 0);
                 equalTo(createdSubreddit.url, subredditURL);
-                equalTo(createdSubreddit.name, "test_new");
-                equalTo(createdSubreddit.total_subscribers, 1);
+                equalTo(createdSubreddit.numSubscribers, 1);
             }).catch(function(err) {
                 fail("¯\\_(ツ)_/¯");
             });
@@ -275,10 +273,10 @@ describe('Subreddit Operations', () => {
 
         it('whenCreatingSubreddit_withAudienceTarget_parseSubreddit_subredditCreated', () => {
             // Given
+            var subredditURL = utils.uuid("new");
             var subreddit = {
-                url: "/r/parent",
+                url: subredditURL,
                 audience_target: "tag",
-                name: "test_parent",
                 subscribers: 1,
                 description: ""
             }
@@ -287,85 +285,104 @@ describe('Subreddit Operations', () => {
             crawler._parseSubreddit(subreddit);
 
             // Then
-            equalTo(fs.existsSync(testDir + "parent.json"), true);
+            Subreddit.findOne({
+                url: subredditURL
+            }, function(err, createdSubreddit) {
+                if (!createdSubreddit) {
+                    fail("Subreddit Not Created");
+                }
 
-            var parentData = JSON.parse(fs.readFileSync(testDir + "parent.json"));
-
-            equalTo(parentData.relatedSubreddits.length, 0);
-            equalTo(parentData.tags.length, 1);
-            equalTo(parentData.tags[0].tag, "tag");
-            equalTo(parentData.tags[0].mentionDistance, 0);
-            equalTo(parentData.url, "/r/parent");
-            equalTo(parentData.name, "test_parent");
-            equalTo(parentData.total_subscribers, 1);
+                equalTo(createdSubreddit.relatedSubreddits.length, 0);
+                equalTo(createdSubreddit.tags.length, 1);
+                equalTo(createdSubreddit.tags[0].tag, "tag");
+                equalTo(createdSubreddit.tags[0].mentionDistance, 0);
+                equalTo(createdSubreddit.url, subredditURL);
+                equalTo(createdSubreddit.numSubscribers, 1);
+            }).catch(function(err) {
+                fail("¯\\_(ツ)_/¯");
+            });
         });
 
         it('whenCreatingSubreddit_withDescription_parseSubreddit_subredditAndChildCreated', () => {
             // Given
+            var parentSubredditURL = utils.uuid("parent");
+            var childSubredditURL = utils.uuid("child");
             var subreddit = {
-                url: "/r/parent",
+                url: parentSubredditURL,
                 audience_target: "",
-                name: "test_parent",
                 subscribers: 1,
-                description: "/r/child"
+                description: childSubredditURL
             }
 
             // When
             crawler._parseSubreddit(subreddit);
 
             // Then
-            equalTo(fs.existsSync(testDir + "parent.json"), true);
+            Subreddit.findOne({
+                url: parentSubredditURL
+            }, function(err, parentSubreddit) {
+                if (!parentSubreddit) {
+                    fail("Parent Subreddit Not Created");
+                }
+                Subreddit.findOne({
+                    url: childSubredditURL
+                }, function(err, childSubreddit) {
+                    if (!childSubreddit) {
+                        fail("Child Subreddit Not Created");
+                    }
 
-            var parentData = JSON.parse(fs.readFileSync(testDir + "parent.json"));
+                    equalTo(parentSubreddit.relatedSubreddits.length, 1);
+                    equalTo(parentSubreddit.relatedSubreddits[0], childSubredditURL);
+                    equalTo(parentSubreddit.tags.length, 0);
+                    equalTo(parentSubreddit.url, parentSubredditURL);
+                    equalTo(parentSubreddit.numSubscribers, 1);
 
-            equalTo(parentData.relatedSubreddits.length, 1);
-            equalTo(parentData.relatedSubreddits[0], "r/child");
-            equalTo(parentData.tags.length, 0);
-            equalTo(parentData.url, "/r/parent");
-            equalTo(parentData.name, "test_parent");
-            equalTo(parentData.total_subscribers, 1);
-
-            equalTo(fs.existsSync(testDir + "child.json"), true);
-
-            var childData = JSON.parse(fs.readFileSync(testDir + "child.json"));
-
-            equalTo(childData.relatedSubreddits.length, 1);
-            equalTo(childData.relatedSubreddits[0], "r/parent");
-            equalTo(childData.tags.length, 0);
-            equalTo(childData.url, "r/child");
+                    equalTo(childSubreddit.relatedSubreddits.length, 1);
+                    equalTo(childSubreddit.relatedSubreddits[0], parentSubredditURL);
+                    equalTo(childSubreddit.tags.length, 0);
+                    equalTo(childSubreddit.url, childSubredditURL);
+                });
+            }).catch(function(err) {
+                fail("¯\\_(ツ)_/¯");
+            });
         });
 
         it('whenUpdatingSubreddit_parseSubreddit_subredditUpdated', () => {
             // Given
-            var parentSubredditData = {
-                url: "/r/parent",
+            var subredditURL = utils.uuid("existing");
+            var existingSubredditData = {
+                url: subredditURL,
                 tags: [],
-                relatedSubreddits: []
+                relatedSubreddits: [],
+                numSubscribers: 1
             };
+            Subreddit.create(existingSubredditData, function(err, existingSubreddit) {
+                var subreddit = {
+                    url: subredditURL,
+                    audience_target: "",
+                    subscribers: 2,
+                    description: ""
+                }
 
-            crawler._writeSubreddit("parent", parentSubredditData);
+                // When
+                crawler._parseSubreddit(subreddit);
 
-            var subreddit = {
-                url: "/r/parent",
-                audience_target: "",
-                name: "test_parent",
-                subscribers: 1,
-                description: ""
-            }
+                // Then
+                Subreddit.findOne({
+                    url: subredditURL
+                }, function(err, existingSubreddit) {
+                    if (!existingSubreddit) {
+                        fail("Subreddit Not Found");
+                    }
 
-            // When
-            crawler._parseSubreddit(subreddit);
-
-            // Then
-            equalTo(fs.existsSync(testDir + "parent.json"), true);
-
-            var parentData = JSON.parse(fs.readFileSync(testDir + "parent.json"));
-
-            equalTo(parentData.relatedSubreddits.length, 0);
-            equalTo(parentData.tags.length, 0);
-            equalTo(parentData.url, "/r/parent");
-            equalTo(parentData.name, "test_parent");
-            equalTo(parentData.total_subscribers, 1);
+                    equalTo(existingSubreddit.relatedSubreddits.length, 0);
+                    equalTo(existingSubreddit.tags.length, 0);
+                    equalTo(existingSubreddit.url, subredditURL);
+                    equalTo(existingSubreddit.numSubscribers, 2);
+                });
+            }).catch(function(err) {
+                fail("¯\\_(ツ)_/¯");
+            });
         });
     });
 });
