@@ -9,11 +9,44 @@ const Subreddit = models.Subreddit;
 
 describe('Subreddit Model', () => {
     let subreddit;
+    const unfoundSubreddit = {
+        url: '/r/SRTestNotFound',
+        tags: [{
+            name: 'tag3',
+            distance: 3
+        }, {
+            name: 'tag2',
+            distance: 2
+        }],
+        numSubscribers: 1004,
+        _relatedSubreddits: []
+    },
+    existingSubreddit = {
+        url: '/r/SRTest1',
+        tags: [{
+            name: 'tag1',
+            distance: 3
+        }, {
+            name: 'tag2',
+            distance: 7
+        }, {
+            name: 'tag3',
+            distance: 2
+        }, {
+            name: 'tag4',
+            distance: 2
+        }, {
+            name: 'tag5',
+            distance: 12
+        }],
+        numSubscribers: 100,
+        _relatedSubreddits: []
+    }
 
     // Before Each Test
     before(done => {
         Subreddit.create({
-            name: '/r/SRTest1',
+            url: '/r/SRTest1',
             tags: [{
                 name: 'tag1',
                 distance: 3
@@ -34,7 +67,7 @@ describe('Subreddit Model', () => {
             _relatedSubreddits: []
         }).then(() => {
             return Subreddit.create({
-                name: '/r/SRTest2',
+                url: '/r/SRTest2',
                 tags: [{
                     name: 'tag1',
                     distance: 7
@@ -89,15 +122,35 @@ describe('Subreddit Model', () => {
         });
 
         // TO ADD:
-        // test find or create
-        // if not found, creates with correct data
-        // if found, loads existing
-
-        //this can wait for when we incorporate the algorithm into the backend routes
         // describe('Testing getSubredditsByTags', () => {
 
         // Test Case
         //   it('will', () => {
         //   });
+    });
+    describe('static methods', () => {
+        describe('Testing findOrCreate', () => {
+            it('create subreddit if it does not exist in the database', () => {
+                it('unfoundSubreddit not already in database', () => {
+                    Subreddit.find(unfoundSubreddit).exec()
+                    .then(res => {
+                        expect(res).to.be.equal([]);
+                    })
+                });
+                it('create subreddit if it does not exist in the database', () => {
+
+                });
+            });
+
+            it('if subreddit does not exist in database', () => {
+                Subreddit.find().getTagsBySubreddits(['/r/SRTest1', '/r/SRTest2']).exec(function(err, res) {
+                    return res;
+                }).then(list => {
+                    var list = list.map(element => element.tags)
+                        .reduce((a, b) => a.concat(b), []);
+                    expect(list.length).to.be.equal(10)
+                });
+            });
+        });
     });
 });

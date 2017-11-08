@@ -19,7 +19,7 @@ takes:
     The callback function is... err give me a moment
 */
 subredditSchema.statics.findOrCreate = function (json, callback) {
-  this.findOne(json, function(err, res){
+  return this.findOne(json, function(err, res){
     if(res) {
       callback(err, res);
     } else {
