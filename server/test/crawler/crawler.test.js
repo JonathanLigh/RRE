@@ -65,6 +65,10 @@ describe('Subreddit Operations', () => {
 
                 // When
                 crawler._updateSubreddit(subreddit, function(updatedSubreddit) {
+                    if (!updatedSubreddit) {
+                        fail("updatedSubreddit Not Created!");
+                    }
+
                     // Then
                     equalTo(updatedSubreddit.tags, updateData);
                 });

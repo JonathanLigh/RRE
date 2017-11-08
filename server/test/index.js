@@ -50,6 +50,12 @@ describe('Testing suite capabilities...', () => {
 });*/
 
 describe('Testing the server...', () => {
+    after(done => {
+        models.Subreddit.remove({}).then(() => {
+            done();
+        })
+    });
+
     const options = {
         useMongoClient: true
     };
