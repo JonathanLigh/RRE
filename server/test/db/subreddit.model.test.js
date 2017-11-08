@@ -6,6 +6,7 @@ const expect = chai.expect;
 
 const models = require('../../db/models');
 const Subreddit = models.Subreddit;
+const utils = require('../utils');
 
 describe('Subreddit Model', () => {
     let subreddit;
@@ -41,12 +42,14 @@ describe('Subreddit Model', () => {
         }],
         numSubscribers: 100,
         _relatedSubreddits: []
-    }
+    },
+    subreddit1 = utils.uuid("test1"),
+    subreddit2 = utils.uuid("test2");
 
     // Before Each Test
     before(done => {
         Subreddit.create({
-            url: '/r/SRTest1',
+            url: subreddit1,
             tags: [{
                 name: 'tag1',
                 distance: 3
@@ -67,7 +70,7 @@ describe('Subreddit Model', () => {
             _relatedSubreddits: []
         }).then(() => {
             return Subreddit.create({
-                url: '/r/SRTest2',
+                url: subreddit2,
                 tags: [{
                     name: 'tag1',
                     distance: 7
@@ -101,7 +104,7 @@ describe('Subreddit Model', () => {
     describe('query helpers', () => {
         describe('Testing getTagsBySubreddits', () => {
             it('it gets all tags from all subreddit names in argument', () => {
-                Subreddit.find().getTagsBySubreddits(['/r/SRTest1', '/r/SRTest2']).exec(function(err, res) {
+                Subreddit.find().getTagsBySubreddits([subreddit1, subreddit2]).exec(function(err, res) {
                     return res;
                 }).then(list => {
                     var list = list.map(element => element.tags)
