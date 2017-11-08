@@ -27,27 +27,6 @@ const subredditSchema = new Schema({
 });
 
 /*
-takes:
-  json:
-    The javascript object notation object that represents the exact object you want to find
-  callback:
-    The callback function is... err give me a moment
-*/
-
-subredditSchema.statics.findOrCreate = function(json, callback) {
-    this.findOne(json, function(err, res) {
-        if (res) {
-            callback(err, res);
-        } else {
-            this.create(json, function(err, res) {
-                callback(err, res);
-            });
-        }
-    });
-
-}
-
-/*
 we do not use ES6 arrow functions here because it prevents binding with "this"
 ref: http://mongoosejs.com/docs/guide.html
 takes:
@@ -57,7 +36,7 @@ returns:
 */
 subredditSchema.query.getTagsBySubreddits = function(names) {
     return this.find({
-        name: {
+        url: {
             $in: names
         }
     }).select('tags')
@@ -74,7 +53,7 @@ returns:
 subredditSchema.query.getSubredditsByTags = function(excludedSRNames, tagNames) {
 
     return this.find({
-        name: {
+        url: {
             "$nin": excludedSRNames
         },
         tags: [{
@@ -89,7 +68,7 @@ subredditSchema.query.getSubredditsByTags = function(excludedSRNames, tagNames) 
             $geq: 500
         } //arbitrary number, can be tweeked
     }).
-    select('name')
+    select('url')
 }
 
 module.exports = mongoose.model('Subreddit', subredditSchema);

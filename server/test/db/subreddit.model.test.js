@@ -42,14 +42,12 @@ describe('Subreddit Model', () => {
         }],
         numSubscribers: 100,
         _relatedSubreddits: []
-    },
-    subreddit1 = utils.uuid("test1"),
-    subreddit2 = utils.uuid("test2");
+    };
 
     // Before Each Test
     before(done => {
         Subreddit.create({
-            url: subreddit1,
+            url: '/r/SRTest1',
             tags: [{
                 name: 'tag1',
                 distance: 3
@@ -70,7 +68,7 @@ describe('Subreddit Model', () => {
             _relatedSubreddits: []
         }).then(() => {
             return Subreddit.create({
-                url: subreddit2,
+                url: '/r/SRTest2',
                 tags: [{
                     name: 'tag1',
                     distance: 7
@@ -104,7 +102,7 @@ describe('Subreddit Model', () => {
     describe('query helpers', () => {
         describe('Testing getTagsBySubreddits', () => {
             it('it gets all tags from all subreddit names in argument', () => {
-                Subreddit.find().getTagsBySubreddits([subreddit1, subreddit2]).exec(function(err, res) {
+                Subreddit.find().getTagsBySubreddits(['/r/SRTest1', '/r/SRTest2']).exec(function(err, res) {
                     return res;
                 }).then(list => {
                     var list = list.map(element => element.tags)
@@ -130,30 +128,5 @@ describe('Subreddit Model', () => {
         // Test Case
         //   it('will', () => {
         //   });
-    });
-    describe('static methods', () => {
-        describe('Testing findOrCreate', () => {
-            it('create subreddit if it does not exist in the database', () => {
-                it('unfoundSubreddit not already in database', () => {
-                    Subreddit.find(unfoundSubreddit).exec()
-                    .then(res => {
-                        expect(res).to.be.equal([]);
-                    })
-                });
-                it('create subreddit if it does not exist in the database', () => {
-
-                });
-            });
-
-            it('if subreddit does not exist in database', () => {
-                Subreddit.find().getTagsBySubreddits(['/r/SRTest1', '/r/SRTest2']).exec(function(err, res) {
-                    return res;
-                }).then(list => {
-                    var list = list.map(element => element.tags)
-                        .reduce((a, b) => a.concat(b), []);
-                    expect(list.length).to.be.equal(10)
-                });
-            });
-        });
     });
 });
