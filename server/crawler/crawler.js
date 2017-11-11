@@ -73,15 +73,16 @@ function parseSubreddit(subredditData) {
             reject("No data was provided");
         }
         Subreddit.findOneAndUpdate({
-            url: subredditData.url,
+            url: subredditData.url
         }, {
-            tags: []
+            tags: [],
+            _relatedSubreddits: []
         }, {
             new: true,
             upsert: true
         }, function(err, subreddit) {
-            if (!err) {
-                reject(err);
+            if (!!err) {
+                reject("error in parseSubreddit: " + err);
             }
             subreddit.numSubscribers = subredditData.subscribers;
 
@@ -122,6 +123,9 @@ function updateSubreddit(subreddit, callback) {
     }, {
         new: true
     }, function(err, updatedSubreddit) {
+        if (!!err) {
+            console.log(err);
+        }
         callback(updatedSubreddit);
     });
 }
@@ -140,11 +144,18 @@ function propagateSubredditData(subredditURL, parentSubreddit, depth, searched) 
         return;
     }
 
-    Subreddit.findOrCreate({
-        url: subredditURL,
+    Subreddit.findOneAndUpdate({
+        url: subredditURL
+    }, {
         tags: [],
         _relatedSubreddits: [parentSubreddit.url]
-    }).exec().then(subreddit => {
+    }, {
+        new: true,
+        upsert: true
+    }, function(err, subreddit) {
+        if (!!err) {
+            console.log("error in propagate: " + err);
+        }
         // subreddit was either found or created, we want to update tags regardless next.
         var updatedTags = false;
         var i;

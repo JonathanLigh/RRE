@@ -22,7 +22,8 @@ const subredditSchema = new Schema({
         type: Number
     },
     _relatedSubreddits: [{
-        type: Schema.Types.ObjectId,
+        type: Schema.Types.ObjectId, // I NEED THIS TO BE A String
+        // not sure how to format, maybe something like Schema.Types.url? it can still ref subreddit but must be string 100% or i would have to heavily rewrite cralwer
         ref: 'Subreddit'
     }]
 });
