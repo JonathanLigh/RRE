@@ -75,7 +75,6 @@ describe('Testing the crawler...', () => {
                         }
 
                         // Then
-                        console.log(updatedSubreddit.tags[0].name);
                         equalTo(updatedSubreddit.tags, updateData);
                     });
                 });
@@ -193,7 +192,7 @@ describe('Testing the crawler...', () => {
                         equalTo(parentSubreddit.tags[0].mentionDistance, 0);
                     });
                 }).catch(function(err) {
-                    fail("¯\\_(ツ)_/¯");
+                    console.log("¯\\_(ツ)_/¯" + err);
                 });
             });
 
@@ -245,7 +244,7 @@ describe('Testing the crawler...', () => {
                         equalTo(parentSubreddit.tags[1].mentionDistance, 2);
                     });
                 }).catch(function(err) {
-                    fail("¯\\_(ツ)_/¯");
+                    console.log("¯\\_(ツ)_/¯" + err);
                 });
             });
         });

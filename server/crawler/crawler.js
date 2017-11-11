@@ -69,13 +69,20 @@ function buildURL(after) {
 
 function parseSubreddit(subredditData) {
     return new Promise(function(resolve, reject) {
-        if (!subreddit) {
+        if (!subredditData) {
             reject("No data was provided");
         }
-        Subreddit.findOrCreate({
+        Subreddit.findOneAndUpdate({
             url: subredditData.url,
+        }, {
             tags: []
-        }).exec().then(subreddit => {
+        }, {
+            new: true,
+            upsert: true
+        }, function(err, subreddit) {
+            if (!err) {
+                reject(err);
+            }
             subreddit.numSubscribers = subredditData.subscribers;
 
             const csvMatcher = /\b[\w\s]+\b/gi;
