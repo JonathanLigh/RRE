@@ -106,17 +106,17 @@ function parseSubreddit(subredditData) {
 }
 
 function updateSubreddit(subreddit, callback) {
-    subreddit.save();
-    callback(subreddit);
-    /*Subreddit.update({
+    Subreddit.findOneAndUpdate({
         url: subreddit.url
     }, {
         tags: subreddit.tags,
         numSubscribers: subreddit.numSubscribers,
         _relatedSubreddits: subreddit._relatedSubreddits
-    }).exec().then(updatedSubreddit => {
+    }, {
+        new: true
+    }, function(err, updatedSubreddit) {
         callback(updatedSubreddit);
-    });*/
+    });
 }
 
 function propagateSubredditData(subredditURL, parentSubreddit, depth, searched) {

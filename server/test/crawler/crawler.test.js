@@ -375,23 +375,24 @@ describe('Testing the crawler...', () => {
                     }
 
                     // When
-                    crawler._parseSubreddit(subreddit);
+                    crawler._parseSubreddit(subreddit).then((res, err) => {
 
-                    // Then
-                    Subreddit.findOne({
-                        url: subredditURL
-                    }, function(err, existingSubreddit) {
-                        if (!existingSubreddit) {
-                            fail("Subreddit Not Found");
-                        }
+                        // Then
+                        Subreddit.findOne({
+                            url: subredditURL
+                        }, function(err, existingSubreddit) {
+                            if (!existingSubreddit) {
+                                fail("Subreddit Not Found");
+                            }
 
-                        equalTo(existingSubreddit.relatedSubreddits.length, 0);
-                        equalTo(existingSubreddit.tags.length, 0);
-                        equalTo(existingSubreddit.url, subredditURL);
-                        equalTo(existingSubreddit.numSubscribers, 2);
+                            equalTo(existingSubreddit.relatedSubreddits.length, 0);
+                            equalTo(existingSubreddit.tags.length, 0);
+                            equalTo(existingSubreddit.url, subredditURL);
+                            equalTo(existingSubreddit.numSubscribers, 2);
+                        });
+                    }).catch(function(err) {
+                        fail("¯\\_(ツ)_/¯");
                     });
-                }).catch(function(err) {
-                    fail("¯\\_(ツ)_/¯");
                 });
             });
         });
