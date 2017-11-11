@@ -75,6 +75,7 @@ describe('Testing the crawler...', () => {
                         }
 
                         // Then
+                        console.log(updatedSubreddit.tags[0].name);
                         equalTo(updatedSubreddit.tags, updateData);
                     });
                 });

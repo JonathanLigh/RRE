@@ -106,7 +106,9 @@ function parseSubreddit(subredditData) {
 }
 
 function updateSubreddit(subreddit, callback) {
-    Subreddit.update({
+    subreddit.save();
+    callback(subreddit);
+    /*Subreddit.update({
         url: subreddit.url
     }, {
         tags: subreddit.tags,
@@ -114,7 +116,7 @@ function updateSubreddit(subreddit, callback) {
         _relatedSubreddits: subreddit._relatedSubreddits
     }).exec().then(updatedSubreddit => {
         callback(updatedSubreddit);
-    });
+    });*/
 }
 
 function propagateSubredditData(subredditURL, parentSubreddit, depth, searched) {

@@ -10,10 +10,11 @@ const subredditSchema = new Schema({
     tags: [{
         name: {
             type: String,
-            required: true
+            required: false
         },
         distance: {
             type: Number,
+            required: false,
             defualt: 0
         }
     }],
