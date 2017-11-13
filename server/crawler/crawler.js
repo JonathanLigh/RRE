@@ -47,6 +47,7 @@ function getReddits(after) {
         }
 
         get_json(buildURL(after, batchSize), function(response) {
+            response.data.children
             parseRecursive(response.data.children, 0, function() {
                 resolve(response.data.after);
             });
@@ -55,14 +56,12 @@ function getReddits(after) {
 }
 
 function parseRecursive(subreddits, currIndex, resolveCallback) {
-    console.log("parsing " + currIndex);
-    parseSubreddit(subreddits[childIndex].data, function() {
-        console.log("we parsed at least 1");
+    parseSubreddit(subreddits[currIndex].data, function() {
         currIndex++;
         if (currIndex >= subreddits.length) {
             resolveCallback();
         } else {
-            parseRecursive(subreddits, currIndex);
+            parseRecursive(subreddits, currIndex, resolveCallback);
         }
     });
 }
@@ -92,7 +91,7 @@ function parseSubreddit(subredditData, callback) {
         new: true,
         upsert: true
     }, function(err, subreddit) {
-        console.log("we made one? " + subredditData.url);
+        // console.log("we made one? " + subredditData.url);
         if (!!err) {
             console.log("error in parseSubreddit: " + err);
         }

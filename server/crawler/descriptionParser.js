@@ -23,7 +23,7 @@ module.exports = {
                 /r\/\w+/gi, // matches "r/..."
                 regex.removeSlashesFromSubredditURL(subreddit.url), // Remove the first '/' and last '/' from '/r/subredditURL'
                 function(match) {
-                    match = "/" + match + "/"; // make the match follow the default url format of /r/subredditURL
+                    return "/" + match + "/"; // make the match follow the default url format of /r/subredditURL
                 });
         }
         return [];

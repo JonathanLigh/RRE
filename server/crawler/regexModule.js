@@ -9,7 +9,7 @@ module.exports = {
             m.forEach((match, groupIndex) => {
                 match = match.toLowerCase();
                 if (!!callback) {
-                    callback(match);
+                    match = callback(match);
                 }
                 if (match !== exclude && matches.indexOf(match) === -1) {
                     matches.push(match);
