@@ -6,7 +6,6 @@ const descriptionParser = require('./descriptionParser');
 const models = require('../db/models');
 const Subreddit = models.Subreddit;
 const Tag = models.Tag;
-const startDb = require('../db');
 
 var batchSize = 1;
 
@@ -14,6 +13,10 @@ var logging = false;
 
 var testingMode = false;
 var triggerExit = false;
+
+if (!testingMode) {
+    const startDb = require('../db');
+}
 
 var statePath = "state.json";
 var state = {
@@ -94,8 +97,8 @@ function parseSubreddit(subredditData) {
             var i;
             for (i in tags) {
                 updateTag(subreddit, {
-                    tag: tags[i],
-                    mentionDistance: 0
+                    name: tags[i],
+                    distance: 0
                 }, 0);
             }
 
@@ -204,22 +207,22 @@ function propagateSubredditData(subredditURL, parentSubreddit, depth, searched) 
     });
 }
 
-// Tags are {tag:"tagName", mentionDistance:X}
+// Tags are {name:"tagName", distance:X}
 function updateTag(subredditData, newTag, depth) {
     var i;
     for (i in subredditData.tags) {
         var existingTag = subredditData.tags[i];
-        if (existingTag.tag === newTag.tag) {
-            if (existingTag.mentionDistance > (newTag.mentionDistance + depth)) {
-                existingTag.mentionDistance = (newTag.mentionDistance + depth);
+        if (existingTag.name === newTag.name) {
+            if (existingTag.distance > (newTag.distance + depth)) {
+                existingTag.distance = (newTag.distance + depth);
                 return true;
             }
             return false;
         }
     }
     subredditData.tags.push({
-        tag: newTag.tag,
-        mentionDistance: newTag.mentionDistance + depth
+        name: newTag.name,
+        distance: newTag.distance + depth
     });
     return true;
 }
@@ -266,13 +269,6 @@ exitHook(function() {
     }
 });
 
-const parsedSubredditDir = (testing) => {
-    if (testing) {
-        return "./server/crawler/parsed_subreddits_test/";
-    }
-    return "./parsed_subreddits/";
-};
-
 module.exports = {
     crawl: function(size) {
         if (size > 100) {
@@ -289,7 +285,6 @@ module.exports = {
             continueSearch(after);
         });
     },
-    parsedSubredditDir: parsedSubredditDir,
     _buildURL: function(after) {
         testingMode = true;
         return buildURL(after);
