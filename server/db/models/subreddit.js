@@ -23,8 +23,7 @@ const subredditSchema = new Schema({
         required: false
     },
     _relatedSubreddits: [{
-        type: Schema.Types.String,
-        ref: 'Subreddit.url'
+        type: String
     }]
 });
 
