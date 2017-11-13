@@ -26,7 +26,7 @@ var state = {
 };
 
 function getReddits(after) {
-    return new Promise(function(resolve, reject) {
+    return new Promise((resolve, reject) => {
         function get_json(url, callback) {
             console.log(`Querying ${url}`);
             https.get(url, function(res) {
@@ -41,14 +41,16 @@ function getReddits(after) {
                 });
 
                 res.on('error', function(error) {
+                    console.log("big error OH BAOY " + error);
                     reject(error);
                 });
             });
         }
 
+        console.log("lets do a thing" + after);
         get_json(buildURL(after, batchSize), function(response) {
-            response.data.children
             parseRecursive(response.data.children, 0, function() {
+                console.log("CD " + response.data.after);
                 resolve(response.data.after);
             });
         });
@@ -56,6 +58,7 @@ function getReddits(after) {
 }
 
 function parseRecursive(subreddits, currIndex, resolveCallback) {
+    console.log("starting " + currIndex);
     parseSubreddit(subreddits[currIndex].data, function() {
         currIndex++;
         if (currIndex >= subreddits.length) {
@@ -183,7 +186,7 @@ function propagateSubredditData(subredditURL, parentSubreddit, depth, searched) 
             // If the tags were modified we should update the subreddit
             updateSubreddit(subreddit, function(subreddit) {
                 if (!!subreddit._relatedSubreddits) {
-                    for (i in subredditData.relatedSubreddits) {
+                    for (i in subreddit.relatedSubreddits) {
                         // we want to update any possible tags that weren't originally referenced.
                         var nextURL = subreddit._relatedSubreddits[i];
                         var index = searched.indexOf(nextURL);
@@ -234,16 +237,16 @@ function updateTag(subredditData, newTag, depth) {
 function continueSearch(after) {
     getReddits(after).then(
         function(after) {
-            console.log("Resolve: " + after);
+            console.log("Resolved: " + after);
             state.after = after;
             setTimeout(function() {
+                console.log("Starting next batch: " + after);
                 continueSearch(after);
             }, 1000);
-        },
-        function(error) {
-            console.log(error);
-            process.exit(1);
-        });
+        }
+    ).catch((err) => {
+        console.log(err)
+    });
 }
 
 function loadStateJSON(callback) {
@@ -289,6 +292,7 @@ module.exports = {
             console.log("Starting search from " + state.after);
             continueSearch(after);
         });
+        return "FUCK YOU";
     },
     _buildURL: function(after) {
         testingMode = true;
