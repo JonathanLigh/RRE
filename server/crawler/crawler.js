@@ -46,19 +46,24 @@ function getReddits(after) {
             });
         }
 
-        var toExecute = [];
         get_json(buildURL(after, batchSize), function(response) {
-            var subreddit;
-            for (subreddit in response.data.children) {
-                toExecute.push(parseSubreddit(response.data.children[subreddit].data));
-            }
+            parseRecursive(response.data.children, 0, function() {
+                resolve(response.data.after);
+            });
         });
+    });
+}
 
-        Promise.all(toExecute).then(values => {
-            resolve(response.data.after);
-        }, error => {
-            reject(error);
-        });
+function parseRecursive(subreddits, currIndex, resolveCallback) {
+    console.log("parsing " + currIndex);
+    parseSubreddit(subreddits[childIndex].data, function() {
+        console.log("we parsed at least 1");
+        currIndex++;
+        if (currIndex >= subreddits.length) {
+            resolveCallback();
+        } else {
+            parseRecursive(subreddits, currIndex);
+        }
     });
 }
 
@@ -73,48 +78,48 @@ function buildURL(after) {
     return url;
 }
 
-function parseSubreddit(subredditData) {
-    return new Promise(function(resolve, reject) {
-        if (!subredditData) {
-            reject("No data was provided");
+function parseSubreddit(subredditData, callback) {
+    console.log("Starting " + subredditData.url);
+    if (!subredditData) {
+        console.log("No data was provided");
+    }
+    Subreddit.findOneAndUpdate({
+        url: subredditData.url
+    }, {
+        tags: [],
+        _relatedSubreddits: []
+    }, {
+        new: true,
+        upsert: true
+    }, function(err, subreddit) {
+        console.log("we made one? " + subredditData.url);
+        if (!!err) {
+            console.log("error in parseSubreddit: " + err);
         }
-        Subreddit.findOneAndUpdate({
-            url: subredditData.url
-        }, {
-            tags: [],
-            _relatedSubreddits: []
-        }, {
-            new: true,
-            upsert: true
-        }, function(err, subreddit) {
-            if (!!err) {
-                reject("error in parseSubreddit: " + err);
-            }
-            subreddit.numSubscribers = subredditData.subscribers;
+        subreddit.numSubscribers = subredditData.subscribers;
 
-            const csvMatcher = /\b[\w\s]+\b/gi;
-            var tags = regex.getListOfMatches(subredditData.audience_target, csvMatcher);
-            var i;
-            for (i in tags) {
-                updateTag(subreddit, {
-                    name: tags[i],
-                    distance: 0
-                }, 0);
+        const csvMatcher = /\b[\w\s]+\b/gi;
+        var tags = regex.getListOfMatches(subredditData.audience_target, csvMatcher);
+        var i;
+        for (i in tags) {
+            updateTag(subreddit, {
+                name: tags[i],
+                distance: 0
+            }, 0);
+        }
+
+        subreddit._relatedSubreddits = descriptionParser.getMentionedSubreddits(subredditData);
+
+        updateSubreddit(subreddit, function() {
+            for (i = 0; i < subreddit._relatedSubreddits.length; i++) {
+                var subredditURL = subreddit._relatedSubreddits[i];
+                console.log("Updating (" + (i + 1) + "/" + subreddit._relatedSubreddits.length + "): " + subredditURL);
+                propagateSubredditData(subredditURL, subreddit, 1, []);
             }
 
-            subreddit._relatedSubreddits = descriptionParser.getMentionedSubreddits(subredditData);
+            console.log(`Finished ${subredditData.url}`);
 
-            updateSubreddit(subreddit, function() {
-                for (i = 0; i < subreddit._relatedSubreddits.length; i++) {
-                    var subredditURL = subreddit._relatedSubreddits[i];
-                    console.log("Updating (" + (i + 1) + "/" + subreddit._relatedSubreddits.length + "): " + subredditURL);
-                    propagateSubredditData(subredditURL, subreddit, 1, []);
-                }
-
-                console.log(`Finished ${subredditData.url}`);
-
-                resolve();
-            });
+            callback();
         });
     });
 }
@@ -230,6 +235,7 @@ function updateTag(subredditData, newTag, depth) {
 function continueSearch(after) {
     getReddits(after).then(
         function(after) {
+            console.log("Resolve: " + after);
             state.after = after;
             setTimeout(function() {
                 continueSearch(after);
