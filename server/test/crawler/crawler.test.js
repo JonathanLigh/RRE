@@ -10,12 +10,6 @@ const Subreddit = models.Subreddit;
 const fs = require('fs');
 
 describe('Testing the crawler...', () => {
-    after(done => {
-        models.Subreddit.remove({}).then(() => {
-            done();
-        })
-    });
-
     describe('helper functions', () => {
         describe('Testing buildURL', () => {
             it('buildURL_noAfter', () => {

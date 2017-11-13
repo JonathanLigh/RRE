@@ -52,6 +52,8 @@ function getReddits(after) {
 
         Promise.all(toExecute).then(values => {
             resolve(response.data.after);
+        }, error => {
+            reject(error);
         });
     });
 }
@@ -114,13 +116,20 @@ function parseSubreddit(subredditData) {
 }
 
 function updateSubreddit(subreddit, callback) {
+    updateData = {};
+    if (!!subreddit.numSubscribers) {
+        updateData.numSubscribers = subreddit.numSubscribers;
+    }
+    if (!!subreddit._relatedSubreddits) {
+        updateData._relatedSubreddits = subreddit._relatedSubreddits;
+    }
+    if (!!subreddit.tags) {
+        updateData.tags = subreddit.tags;
+    }
+
     Subreddit.findOneAndUpdate({
         url: subreddit.url
-    }, {
-        tags: subreddit.tags,
-        numSubscribers: subreddit.numSubscribers,
-        _relatedSubreddits: subreddit._relatedSubreddits
-    }, {
+    }, updateData, {
         new: true
     }, function(err, updatedSubreddit) {
         if (!!err) {
