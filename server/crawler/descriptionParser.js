@@ -21,9 +21,9 @@ module.exports = {
             return regex.getListOfMatches(
                 strippedDescription,
                 /r\/\w+/gi, // matches "r/..."
-                regex.removeSlashesFromSubredditURL(subreddit.url).toLowerCase(), // Remove the first '/' and last '/' from '/r/subredditURL'
+                subreddit.url, // Remove the first '/' and last '/' from '/r/subredditURL'
                 function(match) {
-                    return "/" + match + "/"; // make the match follow the default url format of /r/subredditURL
+                    return "/" + match.toLowerCase() + "/"; // make the match follow the default url format of /r/subredditURL
                 });
         }
         return [];
@@ -32,3 +32,5 @@ module.exports = {
         return cleanDescription(description);
     }
 };
+
+// regex.removeSlashesFromSubredditURL(subreddit.url).toLowerCase(), // Remove the first '/' and last '/' from '/r/subredditURL'

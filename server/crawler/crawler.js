@@ -47,10 +47,8 @@ function getReddits(after) {
             });
         }
 
-        console.log("lets do a thing" + after);
         get_json(buildURL(after, batchSize), function(response) {
             parseRecursive(response.data.children, 0, function() {
-                console.log("CD " + response.data.after);
                 resolve(response.data.after);
             });
         });
@@ -58,7 +56,9 @@ function getReddits(after) {
 }
 
 function parseRecursive(subreddits, currIndex, resolveCallback) {
-    console.log("starting " + currIndex);
+    if (logging) {
+        console.log("Parsing Subreddit " + currIndex);
+    }
     parseSubreddit(subreddits[currIndex].data, function() {
         currIndex++;
         if (currIndex >= subreddits.length) {
@@ -81,7 +81,8 @@ function buildURL(after) {
 }
 
 function parseSubreddit(subredditData, callback) {
-    console.log("Starting " + subredditData.url);
+    subredditData.url = subredditData.url.toLowerCase();
+    console.log("Found " + subredditData.url);
     if (!subredditData) {
         console.log("No data was provided");
     }
@@ -94,10 +95,13 @@ function parseSubreddit(subredditData, callback) {
         new: true,
         upsert: true
     }, function(err, subreddit) {
-        // console.log("we made one? " + subredditData.url);
         if (!!err) {
             console.log("error in parseSubreddit: " + err);
         }
+        if (logging) {
+            console.log("Found: " + subreddit);
+        }
+
         subreddit.numSubscribers = subredditData.subscribers;
 
         const csvMatcher = /\b[\w\s]+\b/gi;
@@ -112,11 +116,11 @@ function parseSubreddit(subredditData, callback) {
 
         subreddit._relatedSubreddits = descriptionParser.getMentionedSubreddits(subredditData);
 
-        updateSubreddit(subreddit, function() {
+        updateSubreddit(subreddit, function(updatedSubreddit) {
             for (i = 0; i < subreddit._relatedSubreddits.length; i++) {
                 var subredditURL = subreddit._relatedSubreddits[i];
                 console.log("Updating (" + (i + 1) + "/" + subreddit._relatedSubreddits.length + "): " + subredditURL);
-                propagateSubredditData(subredditURL, subreddit, 1, []);
+                propagateSubredditData(subredditURL, updatedSubreddit, 1, []);
             }
 
             console.log(`Finished ${subredditData.url}`);
@@ -143,6 +147,9 @@ function updateSubreddit(subreddit, callback) {
     }, updateData, {
         new: true
     }, function(err, updatedSubreddit) {
+        if (logging) {
+            console.log("Updated: " + updatedSubreddit);
+        }
         if (!!err) {
             console.log(err);
         }
@@ -161,7 +168,14 @@ function propagateSubredditData(subredditURL, parentSubreddit, depth, searched) 
 
     // Handle self referential loops
     if (searched.indexOf(subredditURL) !== -1) {
+        if (logging) {
+            console.log("Already Searched: " + subredditURL);
+        }
         return;
+    }
+
+    if (logging) {
+        console.log("findOneAndUpdate: " + subredditURL);
     }
 
     Subreddit.findOneAndUpdate({
@@ -175,6 +189,9 @@ function propagateSubredditData(subredditURL, parentSubreddit, depth, searched) 
     }, function(err, subreddit) {
         if (!!err) {
             console.log("error in propagate: " + err);
+        }
+        if (logging) {
+            console.log("Found (recursive update): " + subreddit);
         }
         // subreddit was either found or created, we want to update tags regardless next.
         var updatedTags = false;
@@ -237,10 +254,11 @@ function updateTag(subredditData, newTag, depth) {
 function continueSearch(after) {
     getReddits(after).then(
         function(after) {
-            console.log("Resolved: " + after);
+            if (logging) {
+                console.log("Resolved: " + after);
+            }
             state.after = after;
             setTimeout(function() {
-                console.log("Starting next batch: " + after);
                 continueSearch(after);
             }, 1000);
         }
@@ -292,7 +310,7 @@ module.exports = {
             console.log("Starting search from " + state.after);
             continueSearch(after);
         });
-        return "FUCK YOU";
+        return "Crawler Initialized";
     },
     _buildURL: function(after) {
         testingMode = true;
