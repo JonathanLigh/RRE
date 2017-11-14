@@ -1,9 +1,17 @@
 'use strict';
 
 const chalk = require('chalk'); // great for highlighting critical info in server logs
-const server = require('http').createServer();
-const app = require('./app');
+const fs = require('fs');
+// const server = require('http').createServer();
+const path = require('path');
+const config = {
+  key: fs.readFileSync(path.resolve('server/file.pem')),
+  cert: fs.readFileSync(path.resolve('server/file.crt')),
+  passphrase: process.env.PASS
+}
 
+const server = require('https').createServer(config);
+const app = require('./app');
 const startDb = require('./db');
 
 const createApplication = () => {
