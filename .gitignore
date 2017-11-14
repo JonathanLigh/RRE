@@ -4,7 +4,8 @@ node_modules
 /server/crawler/state.json
 package-lock.json
 .DS_Store
-*.pem
-*.csr
-*.key
-*.crt
+
+/server/*.pem
+/server/*.csr
+/server/*.key
+/server/*.crt
