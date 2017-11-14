@@ -4,6 +4,7 @@ node_modules
 /server/crawler/state.json
 package-lock.json
 .DS_Store
+state.json
 
 /server/*.pem
 /server/*.csr
