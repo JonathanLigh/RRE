@@ -15,7 +15,6 @@ const subredditSchema = new Schema({
         distance: {
             type: Number,
             required: false,
-            default: 0
         }
     }],
     numSubscribers: {

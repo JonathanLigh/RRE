@@ -88,18 +88,13 @@ function parseSubreddit(subredditData, callback) {
     }
     Subreddit.findOneAndUpdate({
         url: subredditData.url
-    }, {
-        tags: [],
-        _relatedSubreddits: []
-    }, {
+    }, {}, {
         new: true,
-        upsert: true
+        upsert: true,
+        setDefaultsOnInsert: true
     }, function(err, subreddit) {
         if (!!err) {
             console.log("error in parseSubreddit: " + err);
-        }
-        if (logging) {
-            console.log("Found: " + subreddit);
         }
 
         subreddit.numSubscribers = subredditData.subscribers;
@@ -112,6 +107,19 @@ function parseSubreddit(subredditData, callback) {
                 name: tags[i],
                 distance: 0
             }, 0);
+
+            // Put the tag in the overall tags table if it doesnt exist yet.
+            Tag.findOneAndUpdate({
+                name: tags[i]
+            }, {
+                name: tags[i]
+            }, {
+                upsert: true
+            }, function(err, newTag) {
+                if (!newTag) {
+                    console.log("New Tag Discovered");
+                }
+            });
         }
 
         subreddit._relatedSubreddits = descriptionParser.getMentionedSubreddits(subredditData);
@@ -120,7 +128,7 @@ function parseSubreddit(subredditData, callback) {
             for (i = 0; i < subreddit._relatedSubreddits.length; i++) {
                 var subredditURL = subreddit._relatedSubreddits[i];
                 console.log("Updating (" + (i + 1) + "/" + subreddit._relatedSubreddits.length + "): " + subredditURL);
-                propagateSubredditData(subredditURL, updatedSubreddit, 1, []);
+                propagateSubredditData(subredditURL, updatedSubreddit, 1, [updatedSubreddit.url]);
             }
 
             console.log(`Finished ${subredditData.url}`);
@@ -147,9 +155,6 @@ function updateSubreddit(subreddit, callback) {
     }, updateData, {
         new: true
     }, function(err, updatedSubreddit) {
-        if (logging) {
-            console.log("Updated: " + updatedSubreddit);
-        }
         if (!!err) {
             console.log(err);
         }
@@ -159,6 +164,13 @@ function updateSubreddit(subreddit, callback) {
 
 function propagateSubredditData(subredditURL, parentSubreddit, depth, searched) {
     // subredditURL is expected to be in the form of '/r/name'
+    var loggingIndent = "";
+    if (logging) {
+        var count;
+        for (count = 0; count < depth; count++) {
+            loggingIndent += "  ";
+        }
+    }
 
     // Statistical analysis
     if (state.maxDepthReached < depth) {
@@ -169,30 +181,24 @@ function propagateSubredditData(subredditURL, parentSubreddit, depth, searched) 
     // Handle self referential loops
     if (searched.indexOf(subredditURL) !== -1) {
         if (logging) {
-            console.log("Already Searched: " + subredditURL);
+            console.log(loggingIndent + "Already Searched: " + subredditURL);
         }
         return;
     }
 
-    if (logging) {
-        console.log("findOneAndUpdate: " + subredditURL);
-    }
-
     Subreddit.findOneAndUpdate({
         url: subredditURL
-    }, {
-        tags: [],
-        _relatedSubreddits: [parentSubreddit.url]
-    }, {
+    }, {}, {
         new: true,
         upsert: true
     }, function(err, subreddit) {
+        if (subreddit._relatedSubreddits.indexOf(parentSubreddit.url) === -1) {
+            subreddit._relatedSubreddits.push(parentSubreddit.url);
+        }
         if (!!err) {
             console.log("error in propagate: " + err);
         }
-        if (logging) {
-            console.log("Found (recursive update): " + subreddit);
-        }
+
         // subreddit was either found or created, we want to update tags regardless next.
         var updatedTags = false;
         var i;
@@ -201,30 +207,32 @@ function propagateSubredditData(subredditURL, parentSubreddit, depth, searched) 
         }
         if (updatedTags) {
             // If the tags were modified we should update the subreddit
-            updateSubreddit(subreddit, function(subreddit) {
-                if (!!subreddit._relatedSubreddits) {
-                    for (i in subreddit.relatedSubreddits) {
+            updateSubreddit(subreddit, function(updatedSubreddit) {
+                if (!!updatedSubreddit._relatedSubreddits) {
+                    var relatedIndex;
+                    for (relatedIndex = 0; relatedIndex < updatedSubreddit._relatedSubreddits.length; relatedIndex++) {
                         // we want to update any possible tags that weren't originally referenced.
-                        var nextURL = subreddit._relatedSubreddits[i];
-                        var index = searched.indexOf(nextURL);
-                        if (index > -1) {
-                            searched.splice(index, 1);
+                        var nextURL = updatedSubreddit._relatedSubreddits[relatedIndex];
+                        var searchedIndex = searched.indexOf(nextURL);
+                        if (searchedIndex > -1) {
+                            searched.splice(searchedIndex, 1);
                             if (logging) {
-                                console.log("Need to scan " + nextURL + " again in case changes relate.");
+                                console.log(loggingIndent + "Need to scan " + nextURL + " again in case changes relate.");
                             }
                         }
                         if (logging) {
                             console.log(
-                                "Updating (" + i + "/" + subreddit._relatedSubreddits.length + "): " + nextURL
+                                loggingIndent + "Updating (" + (relatedIndex + 1) + "/" + updatedSubreddit._relatedSubreddits.length +
+                                "): " + nextURL
                             );
                         }
-                        propagateSubredditData(nextURL, subreddit, depth + 1, searched);
+                        propagateSubredditData(nextURL, updatedSubreddit, depth + 1, searched);
                     }
                 }
             });
         } else {
             if (logging) {
-                console.log("Finished: " + subredditURL);
+                console.log(loggingIndent + "Finished: " + subredditURL);
             }
             searched.push(subredditURL);
         }
@@ -232,22 +240,26 @@ function propagateSubredditData(subredditURL, parentSubreddit, depth, searched) 
 }
 
 // Tags are {name:"tagName", distance:X}
-function updateTag(subredditData, newTag, depth) {
+function updateTag(subreddit, newTag, depth) {
     var i;
-    for (i in subredditData.tags) {
-        var existingTag = subredditData.tags[i];
-        if (existingTag.name === newTag.name) {
-            if (existingTag.distance > (newTag.distance + depth)) {
-                existingTag.distance = (newTag.distance + depth);
+    for (i in subreddit.tags) {
+        if (subreddit.tags[i].name === newTag.name) {
+            if (subreddit.tags[i].distance > (newTag.distance + depth)) {
+                //console.log("Tag had better distance: " + newTag + "[" + subreddit.tags[i].distance + " => " + (newTag.distance + depth) + "]");
+                subreddit.tags[i].distance = (newTag.distance + depth);
+                //subreddit.save();
                 return true;
             }
+            //console.log("Tag had worse distance: " + newTag + "[" + subreddit.tags[i].distance + " < " + (newTag.distance + depth) + "]");
             return false;
         }
     }
-    subredditData.tags.push({
+    //console.log("Tag not found: " + newTag);
+    subreddit.tags.push({
         name: newTag.name,
         distance: newTag.distance + depth
     });
+    //subreddit.save();
     return true;
 }
 
