@@ -3,7 +3,6 @@ const path = require('path');
 const chalk = require('chalk');
 const express = require('express');
 const app = express();
-const fs = require('fs');
 
 module.exports = app;
 
