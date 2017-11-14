@@ -10,6 +10,7 @@ const Tag = models.Tag;
 var batchSize = 1;
 
 var logging = false;
+var recusiveLogging = true;
 
 var testingMode = false;
 var triggerExit = false;
@@ -41,7 +42,6 @@ function getReddits(after) {
                 });
 
                 res.on('error', function(error) {
-                    console.log("big error OH BAOY " + error);
                     reject(error);
                 });
             });
@@ -165,7 +165,7 @@ function updateSubreddit(subreddit, callback) {
 function propagateSubredditData(subredditURL, parentSubreddit, depth, searched) {
     // subredditURL is expected to be in the form of '/r/name'
     var loggingIndent = "";
-    if (logging) {
+    if (logging || recusiveLogging) {
         var count;
         for (count = 0; count < depth; count++) {
             loggingIndent += "  ";
@@ -220,10 +220,10 @@ function propagateSubredditData(subredditURL, parentSubreddit, depth, searched) 
                                 console.log(loggingIndent + "Need to scan " + nextURL + " again in case changes relate.");
                             }
                         }
-                        if (logging) {
+                        if (logging || recusiveLogging) {
                             console.log(
                                 loggingIndent + "Updating (" + (relatedIndex + 1) + "/" + updatedSubreddit._relatedSubreddits.length +
-                                "): " + nextURL
+                                "): " + updatedSubreddit.url + " => " + nextURL
                             );
                         }
                         propagateSubredditData(nextURL, updatedSubreddit, depth + 1, searched);
@@ -247,7 +247,6 @@ function updateTag(subreddit, newTag, depth) {
             if (subreddit.tags[i].distance > (newTag.distance + depth)) {
                 //console.log("Tag had better distance: " + newTag + "[" + subreddit.tags[i].distance + " => " + (newTag.distance + depth) + "]");
                 subreddit.tags[i].distance = (newTag.distance + depth);
-                //subreddit.save();
                 return true;
             }
             //console.log("Tag had worse distance: " + newTag + "[" + subreddit.tags[i].distance + " < " + (newTag.distance + depth) + "]");
@@ -259,7 +258,6 @@ function updateTag(subreddit, newTag, depth) {
         name: newTag.name,
         distance: newTag.distance + depth
     });
-    //subreddit.save();
     return true;
 }
 
@@ -345,22 +343,6 @@ module.exports = {
         return updateTag(subredditData, newTag, depth);
     }
 };
-
-/*
-updateDescription: function(size) {
-    if (size > 100) {
-        console.log("Max batch size is 100");
-        size = 100;
-    } else if (size < 0) {
-        console.log("Min batch size is 1");
-        size = 1;
-    }
-    batchSize = size;
-    loadStateJSON(function(after) {
-        console.log("Starting search from " + state.after);
-        continueSearch(after);
-    });
-}*/
 
 require('make-runnable/custom')({
     printOutputFrame: false
