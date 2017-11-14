@@ -326,9 +326,9 @@ module.exports = {
         testingMode = true;
         return buildURL(after);
     },
-    _parseSubreddit: function(subreddit) {
+    _parseSubreddit: function(subreddit, callback) {
         testingMode = true;
-        return parseSubreddit(subreddit);
+        return parseSubreddit(subreddit, callback);
     },
     _updateSubreddit: function(subredditData, callback) {
         testingMode = true;

@@ -56,8 +56,8 @@ describe('Testing the crawler...', () => {
                     _relatedSubreddits: []
                 }).then(subreddit => {
                     var updateData = [{
-                        tag: "testTag",
-                        mentionDistance: 0
+                        name: "testTag",
+                        distance: 0
                     }];
 
                     subreddit.tags = updateData;
@@ -82,8 +82,8 @@ describe('Testing the crawler...', () => {
                     tags: []
                 };
                 var newTag = {
-                    tag: "tag",
-                    mentionDistance: 0
+                    name: "tag",
+                    distance: 0
                 };
                 var depth = 0;
 
@@ -93,20 +93,20 @@ describe('Testing the crawler...', () => {
                 // Then
                 equalTo(updated, true);
                 equalTo(subredditData.tags.length, 1);
-                equalTo(subredditData.tags[0].tag, newTag.tag);
+                equalTo(subredditData.tags[0].name, newTag.name);
             });
 
             it('whenTagExists_updateTag_closerDistance_tagUpdated', () => {
                 // Given
                 var subredditData = {
                     tags: [{
-                        tag: "tag",
-                        mentionDistance: 1
+                        name: "tag",
+                        distance: 1
                     }]
                 };
                 var newTag = {
-                    tag: "tag",
-                    mentionDistance: 0
+                    name: "tag",
+                    distance: 0
                 };
                 var depth = 0;
 
@@ -116,21 +116,21 @@ describe('Testing the crawler...', () => {
                 // Then
                 equalTo(updated, true);
                 equalTo(subredditData.tags.length, 1);
-                equalTo(subredditData.tags[0].tag, newTag.tag);
-                equalTo(subredditData.tags[0].mentionDistance, depth);
+                equalTo(subredditData.tags[0].name, newTag.name);
+                equalTo(subredditData.tags[0].distance, depth);
             });
 
             it('whenTagExists_updateTag_fartherDistance_tagNotUpdated', () => {
                 // Given
                 var subredditData = {
                     tags: [{
-                        tag: "tag",
-                        mentionDistance: 0
+                        name: "tag",
+                        distance: 0
                     }]
                 };
                 var newTag = {
-                    tag: "tag",
-                    mentionDistance: 0
+                    name: "tag",
+                    distance: 0
                 };
                 var depth = 1;
 
@@ -140,7 +140,7 @@ describe('Testing the crawler...', () => {
                 // Then
                 equalTo(updated, false);
                 equalTo(subredditData.tags.length, 1);
-                equalTo(subredditData.tags[0].mentionDistance, 0);
+                equalTo(subredditData.tags[0].distance, 0);
             });
         });
 
@@ -152,8 +152,8 @@ describe('Testing the crawler...', () => {
                 var parentSubredditData = {
                     url: parentSubredditURL,
                     tags: [{
-                        tag: "tag",
-                        mentionDistance: 0
+                        name: "tag",
+                        distance: 0
                     }],
                     name: "test_parent",
                     relatedSubreddits: [childSubredditURL]
@@ -176,14 +176,14 @@ describe('Testing the crawler...', () => {
                         equalTo(childSubreddit.relatedSubreddits.length, 1);
                         equalTo(childSubreddit.relatedSubreddits[0], parentSubredditURL);
                         equalTo(childSubreddit.tags.length, 1);
-                        equalTo(childSubreddit.tags[0].tag, "tag");
-                        equalTo(childSubreddit.tags[0].mentionDistance, 1);
+                        equalTo(childSubreddit.tags[0].name, "tag");
+                        equalTo(childSubreddit.tags[0].distance, 1);
 
                         equalTo(parentSubreddit.relatedSubreddits.length, 1);
                         equalTo(parentSubreddit.relatedSubreddits[0], childSubredditURL);
                         equalTo(parentSubreddit.tags.length, 1);
-                        equalTo(parentSubreddit.tags[0].tag, "tag");
-                        equalTo(parentSubreddit.tags[0].mentionDistance, 0);
+                        equalTo(parentSubreddit.tags[0].name, "tag");
+                        equalTo(parentSubreddit.tags[0].distance, 0);
                     });
                 }).catch(function(err) {
                     console.log("¯\\_(ツ)_/¯" + err);
@@ -198,8 +198,8 @@ describe('Testing the crawler...', () => {
                 var parentSubredditData = {
                     url: parentSubredditURL,
                     tags: [{
-                        tag: "parentTag",
-                        mentionDistance: 0
+                        name: "parentTag",
+                        distance: 0
                     }],
                     relatedSubreddits: [existingSubredditURL]
                 };
@@ -210,8 +210,8 @@ describe('Testing the crawler...', () => {
                     var existingSubredditData = {
                         url: subredditURL,
                         tags: [{
-                            tag: "existingTag",
-                            mentionDistance: 0
+                            name: "existingTag",
+                            distance: 0
                         }],
                         relatedSubreddits: []
                     };
@@ -224,18 +224,18 @@ describe('Testing the crawler...', () => {
                         equalTo(existingSubreddit.relatedSubreddits.length, 1);
                         equalTo(existingSubreddit.relatedSubreddits[0], parentSubredditURL);
                         equalTo(existingSubreddit.tags.length, 2);
-                        equalTo(existingSubreddit.tags[0].tag, "existingTag");
-                        equalTo(existingSubreddit.tags[0].mentionDistance, 0);
-                        equalTo(existingSubreddit.tags[1].tag, "parentTag");
-                        equalTo(existingSubreddit.tags[1].mentionDistance, 1);
+                        equalTo(existingSubreddit.tags[0].name, "existingTag");
+                        equalTo(existingSubreddit.tags[0].distance, 0);
+                        equalTo(existingSubreddit.tags[1].name, "parentTag");
+                        equalTo(existingSubreddit.tags[1].distance, 1);
 
                         equalTo(parentSubreddit.relatedSubreddits.length, 1);
                         equalTo(parentSubreddit.relatedSubreddits[0], existingSubredditURL);
                         equalTo(parentSubreddit.tags.length, 2);
-                        equalTo(parentSubreddit.tags[0].tag, "parentTag");
-                        equalTo(parentSubreddit.tags[0].mentionDistance, 0);
-                        equalTo(parentSubreddit.tags[1].tag, "existingTag");
-                        equalTo(parentSubreddit.tags[1].mentionDistance, 2);
+                        equalTo(parentSubreddit.tags[0].name, "parentTag");
+                        equalTo(parentSubreddit.tags[0].distance, 0);
+                        equalTo(parentSubreddit.tags[1].name, "existingTag");
+                        equalTo(parentSubreddit.tags[1].distance, 2);
                     });
                 }).catch(function(err) {
                     console.log("¯\\_(ツ)_/¯" + err);
@@ -255,7 +255,7 @@ describe('Testing the crawler...', () => {
                 }
 
                 // When
-                crawler._parseSubreddit(subreddit).then((res, err) => {
+                crawler._parseSubreddit(subreddit, function() {
                     // Then
                     Subreddit.findOne({
                         url: subredditURL
@@ -269,8 +269,6 @@ describe('Testing the crawler...', () => {
                         equalTo(createdSubreddit.url, subredditURL);
                         equalTo(createdSubreddit.numSubscribers, 1);
                     });
-                }).catch(function(err) {
-                    console.log("¯\\_(ツ)_/¯" + err);
                 });
             });
 
@@ -285,7 +283,7 @@ describe('Testing the crawler...', () => {
                 }
 
                 // When
-                crawler._parseSubreddit(subreddit).then((res, err) => {
+                crawler._parseSubreddit(subreddit, function() {
                     // Then
                     Subreddit.findOne({
                         url: subredditURL
@@ -296,13 +294,13 @@ describe('Testing the crawler...', () => {
 
                         equalTo(createdSubreddit.relatedSubreddits.length, 0);
                         equalTo(createdSubreddit.tags.length, 1);
-                        equalTo(createdSubreddit.tags[0].tag, "tag");
-                        equalTo(createdSubreddit.tags[0].mentionDistance, 0);
+                        equalTo(createdSubreddit.tags[0].name, "tag");
+                        equalTo(createdSubreddit.tags[0].distance, 0);
                         equalTo(createdSubreddit.url, subredditURL);
                         equalTo(createdSubreddit.numSubscribers, 1);
+                    }).catch(function(err) {
+                        console.log("¯\\_(ツ)_/¯" + err);
                     });
-                }).catch(function(err) {
-                    console.log("¯\\_(ツ)_/¯" + err);
                 });
             });
 
@@ -318,7 +316,7 @@ describe('Testing the crawler...', () => {
                 }
 
                 // When
-                crawler._parseSubreddit(subreddit).then((res, err) => {
+                crawler._parseSubreddit(subreddit, function() {
                     // Then
                     Subreddit.findOne({
                         url: parentSubredditURL
@@ -345,8 +343,6 @@ describe('Testing the crawler...', () => {
                             equalTo(childSubreddit.url, childSubredditURL);
                         });
                     });
-                }).catch(function(err) {
-                    console.log("¯\\_(ツ)_/¯" + err);
                 });
             });
 
@@ -368,8 +364,7 @@ describe('Testing the crawler...', () => {
                     }
 
                     // When
-                    crawler._parseSubreddit(subreddit).then((res, err) => {
-
+                    crawler._parseSubreddit(subreddit, function() {
                         // Then
                         Subreddit.findOne({
                             url: subredditURL
@@ -383,9 +378,9 @@ describe('Testing the crawler...', () => {
                             equalTo(existingSubreddit.url, subredditURL);
                             equalTo(existingSubreddit.numSubscribers, 2);
                         });
-                    }).catch(function(err) {
-                        console.log("¯\\_(ツ)_/¯" + err);
                     });
+                }).catch(function(err) {
+                    console.log("¯\\_(ツ)_/¯" + err);
                 });
             });
         });

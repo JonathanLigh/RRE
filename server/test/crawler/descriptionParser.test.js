@@ -33,7 +33,7 @@ describe('Testing getMentionedSubreddits', () => {
     it('whenContainsSubreddits_cleanDescription_returnAllSubreddits', () => {
         // Given
         var subreddit = {
-            url: "/r/test0",
+            url: "/r/test0/",
             description: "r/test1 /r/test2 /r/test3\n/r/test4 //////r/test5/////// abcd/r/test6"
         }
 
@@ -47,7 +47,7 @@ describe('Testing getMentionedSubreddits', () => {
     it('whenContainsSubredditsIncludingSelf_cleanDescription_returnAllSubredditsExceptSelf', () => {
         // Given
         var subreddit = {
-            url: "/r/test1",
+            url: "/r/test1/",
             description: "r/test1 /r/test2 /r/test3\n/r/test4 //////r/test5/////// abcd/r/test6"
         }
 
