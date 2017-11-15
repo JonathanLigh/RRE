@@ -3,8 +3,16 @@
     "version": "1.0.0",
     "description": "",
     "main": "server/main.js",
+    "nyc": {
+        "exclude": [
+            "node_modules/*",
+            "server/test/*",
+            "*.pem",
+            "*.crt"
+        ]
+    },
     "scripts": {
-        "test": "mocha ./server/test",
+        "test": "nyc mocha ./server/test",
         "start": "node ./server/main"
     },
     "repository": {
@@ -37,6 +45,7 @@
         "mkdirp": "^0.5.1",
         "mongodb": "^2.2.31",
         "mongoose": "^4.11.12",
+        "nyc": "^11.3.0",
         "path": "^0.12.7",
         "progress": "^2.0.0",
         "querystring": "^0.2.0",

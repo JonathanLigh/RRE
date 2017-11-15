@@ -30,19 +30,8 @@ router.get('/getTagsForSubreddit', function(req, res, next) {
     }).catch(next);
 });
 
-router.get('/recommended', function(req, res, next) {
+router.post('/recommended', function(req, res, next) {
     console.log("Searching For " + req.body.tags);
-    if (!!req.body.tags || !!req.body.subscribed || !!req.body.blacklisted) {
-        res.status(422);
-    }
-    var searchTags = req.body.tags;
-
-    var blacklist = req.body.subscribed.concat(req.body.blacklisted);
-
-    var maxValues = 5;
-    if (!!req.body.maxRecommendations) {
-        maxValues = req.body.maxRecommendations;
-    }
 
     function getMatchingTags(tags) {
         var matchingTags = [];
@@ -106,45 +95,58 @@ router.get('/recommended', function(req, res, next) {
         // Popularity Difference
         return subreddit2.total_subscribers - subreddit1.total_subscribers;
     });
+    if (req.body.tags || req.body.subscribed || req.body.blacklisted) {
 
-    Subreddit.find({
-        url: {
-            $nin: blacklist
+        var searchTags = req.body.tags;
+        var blacklist = req.body.subscribed.concat(req.body.blacklisted);
+        var maxValues = 5;
+        if (!!req.body.maxRecommendations) {
+            maxValues = req.body.maxRecommendations;
         }
-    }, function(err, parsedSubreddits) {
-        var progressBarScale = 100;
-        var bar = ProgressBar.getNew('[:bar] :eta Seconds Remaining', {
-            complete: '=',
-            incomplete: ' ',
-            width: 40,
-            total: parsedSubreddits.length / progressBarScale
-        });
-
-        for (index in parsedSubreddits) {
-            heap.push(parsedSubreddits[index]);
-            if (index % progressBarScale === 0) {
-                bar.tick();
+        Subreddit.find({
+            url: {
+                $nin: blacklist
             }
-        }
-
-        var output = [];
-        for (index = 0; index < maxValues; index++) {
-            if (heap.empty()) {
-                break;
-            }
-            var subreddit = heap.pop();
-            var subredditTagsMatched = getMatchingTags(subreddit.tags);
-            output.push({
-                subreddit: subreddit.url,
-                rank: index,
-                tagsMatched: subredditTagsMatched.length,
-                tagScore: getMentionDistanceSum(subredditTagsMatched),
-                depth: getMinMentionDistance(subredditTagsMatched)
+        }, function(err, parsedSubreddits) {
+            var progressBarScale = 100;
+            var bar = ProgressBar.getNew('[:bar] :eta Seconds Remaining', {
+                complete: '=',
+                incomplete: ' ',
+                width: 40,
+                total: parsedSubreddits.length / progressBarScale
             });
-        }
-        res.status(200);
-        res.json(output);
-    }).catch(next);
+
+            for (index in parsedSubreddits) {
+                heap.push(parsedSubreddits[index]);
+                if (index % progressBarScale === 0) {
+                    bar.tick();
+                }
+            }
+
+            var output = [];
+            for (index = 0; index < maxValues; index++) {
+                if (heap.empty()) {
+                    break;
+                }
+                var subreddit = heap.pop();
+                var subredditTagsMatched = getMatchingTags(subreddit.tags);
+                output.push({
+                    subreddit: subreddit.url,
+                    rank: index,
+                    tagsMatched: subredditTagsMatched.length,
+                    tagScore: getMentionDistanceSum(subredditTagsMatched),
+                    depth: getMinMentionDistance(subredditTagsMatched)
+                });
+            }
+            res.status(200);
+            res.json({output});
+        }).catch(next);
+
+    } else {
+
+        res.status(422).send('Unprocessable Entity')
+    }
+
 });
 
 module.exports = router;
