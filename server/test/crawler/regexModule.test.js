@@ -2,9 +2,22 @@ const chai = require('chai');
 const spies = require('chai-spies');
 chai.use(spies);
 const equalTo = chai.assert.strictEqual;
+const models = require('../../db/models');
+const Tag = models.Tag;
+const Subreddit = models.Subreddit;
 var regex = require('../../crawler/regexModule')
 
 describe('Testing getListOfMatches', () => {
+    //  need to flush the testing database of all the information
+    //  created from the crawler tests
+    after(done => {
+      Tag.remove({})
+      .then(() => {
+          return Subreddit.remove({})
+      }).then(() => {
+        done();
+      }).catch(done)
+  })
     it('whenNoMatches_getListOfMatches_returnEmptyList', () => {
         // Given
         var search = "abcda";

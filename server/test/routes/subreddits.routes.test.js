@@ -10,7 +10,6 @@ const expect = chai.expect;
 
 const models = require('../../db/models');
 const Subreddit = models.Subreddit;
-const Tag = models.Tag;
 const utils = require('../utils');
 
     const subreddits = [{
@@ -111,7 +110,6 @@ const utils = require('../utils');
     }]
 
 describe('Subreddit Routes', () => {
-    let subreddit;
 
     // Before Each Test
     before(done => {
@@ -140,11 +138,13 @@ describe('Subreddit Routes', () => {
             .expect(200, done);
         });
 
-        it('responds with 422', (done) => {
+        it('responds with 422 if req data not sent', (done) => {
             agent
             .post('/api/subreddits/recommended')
             .expect(422, done);
         });
+
+
     });
 });
 
