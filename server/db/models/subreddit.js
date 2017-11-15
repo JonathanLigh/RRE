@@ -50,25 +50,26 @@ returns:
   query to be executed that will return the most related subreddits
 */
 
-subredditSchema.query.getSubredditsByTags = function(excludedSRNames, tagNames) {
+//  in developement for later optimization of recommendation algorithm
+// subredditSchema.query.getSubredditsByTags = function(excludedSRNames, tagNames) {
 
-    return this.find({
-        url: {
-            "$nin": excludedSRNames
-        },
-        tags: [{
-            name: {
-                $in: tagNames
-            },
-            distance: {
-                $leq: 5
-            } //arbitrary number, can be tweeked
-        }],
-        numSubscribers: {
-            $geq: 500
-        } //arbitrary number, can be tweeked
-    }).
-    select('url')
-}
+//     return this.find({
+//         url: {
+//             "$nin": excludedSRNames
+//         },
+//         tags: [{
+//             name: {
+//                 $in: tagNames
+//             },
+//             distance: {
+//                 $leq: 5
+//             } //arbitrary number, can be tweeked
+//         }],
+//         numSubscribers: {
+//             $geq: 500
+//         } //arbitrary number, can be tweeked
+//     }).
+//     select('url')
+// }
 
 module.exports = mongoose.model('Subreddit', subredditSchema);

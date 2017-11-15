@@ -8,7 +8,8 @@
             "node_modules/*",
             "server/test/*",
             "*.pem",
-            "*.crt"
+            "*.crt",
+            "*/index.js"
         ]
     },
     "scripts": {

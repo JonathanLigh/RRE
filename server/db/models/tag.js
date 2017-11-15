@@ -6,8 +6,4 @@ const tagSchema = new Schema({
   name: {type: String, required: true, unique: true}
 });
 
-tagSchema.query.getTagById = (id) => {
-  return this.find({_id: id})
-}
-
 module.exports = mongoose.model('Tag', tagSchema);
