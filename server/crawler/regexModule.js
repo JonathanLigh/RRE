@@ -22,9 +22,5 @@ module.exports = {
 
     getNameFromURL: function(url) {
         return url.replace(/^\/?r\/|\//gi, '').toLowerCase();
-    },
-
-    removeSlashesFromSubredditURL: function(url) {
-        return url.replace(/^\/|\/$/g, '');
     }
 }

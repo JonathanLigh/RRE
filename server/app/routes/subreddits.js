@@ -16,20 +16,20 @@ returns the top 5 recommended subreddits
   The res body will have:
     a list of the top 5 recommended
 */
+//  commented out as not yet implemented
+// router.get('/getTagsForSubreddit', function(req, res, next) {
+//     Subreddit.find().getTagsBySubreddits(req.body.subreddits).exec(function(err, res) {
+//         return res
+//     }).then(tags => {
+//         console.log(chalk.green("tags after getting them from every Subreddit passed in: " + tags));
 
-router.get('/getTagsForSubreddit', function(req, res, next) {
-    Subreddit.find().getTagsBySubreddits(req.body.subreddits).exec(function(err, res) {
-        return res
-    }).then(tags => {
-        console.log(chalk.green("tags after getting them from every Subreddit passed in: " + tags));
-
-        tags = tags.map(element => element.tags).reduce((a, b) => a.concat(b), []);
-        return tags
-    }).then(list => {
-        res.status(200);
-        res.json(list);
-    }).catch(next);
-});
+//         tags = tags.map(element => element.tags).reduce((a, b) => a.concat(b), []);
+//         return tags
+//     }).then(list => {
+//         res.status(200);
+//         res.json(list);
+//     }).catch(next);
+// });
 
 router.post('/recommended', function(req, res, next) {
     console.log("Searching For " + req.body.tags);
@@ -66,9 +66,6 @@ router.post('/recommended', function(req, res, next) {
 
         var blacklist = req.body.subscribed.concat(req.body.blacklisted);
         var maxValues = 5;
-        if (!!req.body.maxRecommendations) {
-            maxValues = req.body.maxRecommendations;
-        }
 
         Subreddit.find({
             url: {
@@ -89,7 +86,6 @@ router.post('/recommended', function(req, res, next) {
                     bar.tick();
                 }
             }
-
             var output = [];
             for (index = 0; index < maxValues; index++) {
                 if (heap.empty()) {
@@ -108,9 +104,7 @@ router.post('/recommended', function(req, res, next) {
             res.status(200);
             res.json({output});
         }).catch(next);
-
     } else {
-
         res.status(422).send('Unprocessable Entity')
     }
 

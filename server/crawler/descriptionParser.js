@@ -32,5 +32,3 @@ module.exports = {
         return cleanDescription(description);
     }
 };
-
-// regex.removeSlashesFromSubredditURL(subreddit.url).toLowerCase(), // Remove the first '/' and last '/' from '/r/subredditURL'

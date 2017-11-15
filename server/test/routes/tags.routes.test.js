@@ -46,11 +46,10 @@ describe('Tag Routes', () => {
           .expect(200, done);
       });
 
-      it('server sends back all tags in the database', (done) => {
+      it('responds with tags in the database', (done) => {
           agent
           .get('/api/tags')
           .then(res => {
-            console.log(res.body);
             expect(res.body).to.exist;
             expect(res.body.length).to.equal(4);
 

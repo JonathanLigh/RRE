@@ -2,16 +2,15 @@
     "name": "redditrecomendationengine",
     "version": "1.0.0",
     "description": "",
-    "main": "server/main.js",
     "nyc": {
         "exclude": [
-            "node_modules/*",
-            "server/test/*",
             "*.pem",
             "*.crt",
-            "*/index.js"
+            "server/**/index.js",
+            "server/test/*"
         ]
     },
+    "main": "server/main.js",
     "scripts": {
         "test": "nyc mocha ./server/test",
         "start": "node ./server/main"

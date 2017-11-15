@@ -144,7 +144,22 @@ describe('Subreddit Routes', () => {
             .expect(422, done);
         });
 
-
+        it('recommendation does not contain subscribed or blacklisted subreddits', (done) => {
+            agent
+            .post('/api/subreddits/recommended')
+            .send({
+                tags: ['tag1', 'tag2', 'tag3'],
+                subscribed: ['/r/SRTest5'],
+                blacklisted: ['/r/SRTest3']
+            })
+            .then(res => {
+                var list = res.body.output.map(element => element.subreddit)
+                        .reduce((a, b) => a.concat(b), []);
+                expect(list).to.not.have.members(['/r/SRTest3', '/r/SRTest5']);
+                done();
+            })
+            .catch(done);
+        });
     });
 });
 
