@@ -30,6 +30,8 @@ router.get('/getTagsForSubreddit', function(req, res, next) {
 });
 
 router.get('/recommended', function(req, res, next) {
+    var searchTags = req.body.tags;
+
     function getMatchingTags(tags) {
         var matchingTags = [];
         var i;
@@ -93,8 +95,8 @@ router.get('/recommended', function(req, res, next) {
         return subreddit2.total_subscribers - subreddit1.total_subscribers;
     });
 
-
     Subreddit.find({}, function(err, parsedSubreddits) {
+
         for (index in parsedSubreddits) {
             heap.push(subreddit);
         }
