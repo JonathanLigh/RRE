@@ -32,11 +32,17 @@ router.get('/getTagsForSubreddit', function(req, res, next) {
 
 router.get('/recommended', function(req, res, next) {
     console.log("Searching For " + req.body.tags);
-    if (!!req.body.tags) {
+    if (!!req.body.tags || !!req.body.subscribed || !!req.body.blacklisted) {
         res.status(422);
     }
     var searchTags = req.body.tags;
+
+    var blacklist = req.body.subscribed.concat(req.body.blacklisted);
+
     var maxValues = 5;
+    if (!!req.body.maxRecommendations) {
+        maxValues = req.body.maxRecommendations;
+    }
 
     function getMatchingTags(tags) {
         var matchingTags = [];
@@ -101,7 +107,11 @@ router.get('/recommended', function(req, res, next) {
         return subreddit2.total_subscribers - subreddit1.total_subscribers;
     });
 
-    Subreddit.find({}, function(err, parsedSubreddits) {
+    Subreddit.find({
+        url: {
+            $nin: blacklist
+        }
+    }, function(err, parsedSubreddits) {
         var progressBarScale = 100;
         var bar = ProgressBar.getNew('[:bar] :eta Seconds Remaining', {
             complete: '=',
