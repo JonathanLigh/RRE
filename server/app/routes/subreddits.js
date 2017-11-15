@@ -5,6 +5,7 @@ const async = require('async');
 const Subreddit = models.Subreddit;
 const chalk = require('chalk');
 const Heap = require('heap');
+var ProgressBar = require('console-progress');
 
 /*
 returns the top 5 recommended subreddits
@@ -30,14 +31,19 @@ router.get('/getTagsForSubreddit', function(req, res, next) {
 });
 
 router.get('/recommended', function(req, res, next) {
+    console.log("Searching For " + req.body.tags);
+    if (!!req.body.tags) {
+        res.status(422);
+    }
     var searchTags = req.body.tags;
+    var maxValues = 5;
 
     function getMatchingTags(tags) {
         var matchingTags = [];
         var i;
         for (i in tags) {
             var tag = tags[i];
-            if (searchTags.indexOf(tag.tag) !== -1) {
+            if (searchTags.indexOf(tag.name) !== -1) {
                 matchingTags.push(tag);
             }
             if (matchingTags.length === searchTags.length) {
@@ -51,7 +57,7 @@ router.get('/recommended', function(req, res, next) {
         var sum = 0;
         var i;
         for (i in tags) {
-            sum += tags[i].mentionDistance;
+            sum += tags[i].distance;
         }
         return sum;
     }
@@ -60,8 +66,8 @@ router.get('/recommended', function(req, res, next) {
         var min = Number.MAX_VALUE;
         var i;
         for (i in tags) {
-            if (min > tags[i].mentionDistance) {
-                min = tags[i].mentionDistance;
+            if (min > tags[i].distance) {
+                min = tags[i].distance;
             }
         }
         return min;
@@ -70,8 +76,8 @@ router.get('/recommended', function(req, res, next) {
     var heap = new Heap(function(subreddit1, subreddit2) {
         // Could we make this more efficient by storing data? Currently runs decently fast anyway...
 
-        var subreddit1Tags = getMatchingTags(subreddit1.tags);
-        var subreddit2Tags = getMatchingTags(subreddit2.tags);
+        var subreddit1Tags = !subreddit1.tags ? [] : getMatchingTags(subreddit1.tags);
+        var subreddit2Tags = !subreddit2.tags ? [] : getMatchingTags(subreddit2.tags);
 
         var tagDifference = subreddit2Tags.length - subreddit1Tags.length;
         if (tagDifference !== 0) {
@@ -96,9 +102,19 @@ router.get('/recommended', function(req, res, next) {
     });
 
     Subreddit.find({}, function(err, parsedSubreddits) {
+        var progressBarScale = 100;
+        var bar = ProgressBar.getNew('[:bar] :eta Seconds Remaining', {
+            complete: '=',
+            incomplete: ' ',
+            width: 40,
+            total: parsedSubreddits.length / progressBarScale
+        });
 
         for (index in parsedSubreddits) {
-            heap.push(subreddit);
+            heap.push(parsedSubreddits[index]);
+            if (index % progressBarScale === 0) {
+                bar.tick();
+            }
         }
 
         var output = [];
@@ -117,7 +133,7 @@ router.get('/recommended', function(req, res, next) {
             });
         }
         res.status(200);
-        res.json(recSubreddits);
+        res.json(output);
     }).catch(next);
 });
 
