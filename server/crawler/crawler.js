@@ -10,14 +10,10 @@ const Tag = models.Tag;
 var batchSize = 1;
 
 var logging = false;
-var recusiveLogging = true;
+var recusiveLogging = false;
 
 var testingMode = false;
 var triggerExit = false;
-
-if (!testingMode) {
-    const startDb = require('../db');
-}
 
 var statePath = "state.json";
 var state = {
@@ -307,6 +303,7 @@ exitHook(function() {
 
 module.exports = {
     crawl: function(size) {
+        const startDb = require('../db');
         if (size > 100) {
             console.log("Max batch size is 100");
             size = 100;
