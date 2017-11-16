@@ -17,6 +17,7 @@ returns all unique tags of provided subreddits that are within the provided dist
     a map of tags and their distances
 */
 router.post('/getTagsForSubreddits', function(req, res, next) {
+    console.log("Searching For " + JSON.stringify(req.body));
     if (!!req.body.subreddits && !!req.body.maxDistance) {
         Subreddit.find({
             url: {
@@ -60,7 +61,7 @@ returns the top (n) recommended subreddits
     a list of the top (n) recommended, in order of relevancy
 */
 router.post('/recommended', function(req, res, next) {
-    console.log("Searching For " + req.body.tags);
+    console.log("Searching For " + JSON.stringify(req.body));
 
     var heap = new Heap(function(subreddit1, subreddit2) {
         // Could we make this more efficient by storing data? Currently runs decently fast anyway...
