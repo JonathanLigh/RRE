@@ -17,7 +17,6 @@ returns all unique tags of provided subreddits that are within the provided dist
     a map of tags and their distances
 */
 router.post('/getTagsForSubreddits', function(req, res, next) {
-    console.log("Searching For " + JSON.stringify(req.body));
     if (!!req.body.subreddits && !!req.body.maxDistance) {
         Subreddit.find({
             url: {
@@ -91,7 +90,7 @@ router.post('/recommended', function(req, res, next) {
         return subreddit2.total_subscribers - subreddit1.total_subscribers;
     });
 
-    if (req.body.tags && req.body.subscribed && req.body.blacklisted && req.body.maxRecommendations) {
+    if (!!req.body.tags && !!req.body.subscribed && !!req.body.blacklisted && !!req.body.maxRecommendations) {
         var blacklist = req.body.subscribed.concat(req.body.blacklisted);
 
         Subreddit.find({

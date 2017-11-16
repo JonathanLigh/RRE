@@ -10,6 +10,7 @@ const expect = chai.expect;
 
 const models = require('../../db/models');
 const Subreddit = models.Subreddit;
+const Tag = models.Tag;
 const utils = require('../utils');
 
 const subreddits = [{
@@ -107,19 +108,42 @@ const subreddits = [{
     }],
     numSubscribers: 100,
     _relatedSubreddits: []
-}]
+}],
+tags = [{
+  name: 'tag1'
+}, {
+  name: 'tag2'
+}, {
+  name: 'tag3'
+}, {
+  name: 'tag4'
+}, {
+  name: 'tag5'
+}, {
+  name: 'tag6'
+}, {
+  name: 'tag7'
+}, {
+  name: 'tag8'
+}];
 
 describe('Subreddit Routes', () => {
 
     // Before Each Test
     before(done => {
-        Subreddit.insertMany(subreddits).then(() => {
+        Subreddit.insertMany(subreddits)
+        .then(() => {
+            return Tag.insertMany(tags)
+        }).then(() => {
             done();
         }).catch(done);
     });
 
     after(done => {
-        Subreddit.remove({}).then(() => {
+        Subreddit.remove({})
+        .then(() => {
+            return Tag.remove({})
+        }).then(() => {
             done();
         }).catch(done)
     })
@@ -150,6 +174,7 @@ describe('Subreddit Routes', () => {
                 expect(list).to.not.have.members(['/r/SRTest3', '/r/SRTest5']);
                 done();
             }).catch(done);
+        });
 
         it('recommendation returns a list of at most maxRecommendations length', (done) => {
             agent.post('/api/subreddits/recommended').send({
@@ -158,10 +183,32 @@ describe('Subreddit Routes', () => {
                 blacklisted: ['/r/SRTest3'],
                 maxRecommendations: 2
             }).then(res => {
-                expect(res.body.length).to.have.length(2);
+                expect(res.body).to.have.length(2);
                 done();
             }).catch(done);
         });
+    });
+
+    describe('POST /api/subreddits/getTagsForSubreddits', () => {
+        it('responds with 200', (done) => {
+            agent.post('/api/subreddits/getTagsForSubreddits').send({
+                subreddits: ['/r/SRTest5'],
+                maxDistance: 5
+            }).expect(200, done);
+        });
+
+        it('responds with 422 if req data not sent', (done) => {
+            agent.post('/api/subreddits/getTagsForSubreddits').expect(422, done);
+        });
+
+        it('getTagsForSubreddits returns a list', (done) => {
+            agent.post('/api/subreddits/getTagsForSubreddits').send({
+                subreddits: ['/r/SRTest5'],
+                maxDistance: 2
+            }).then(res => {
+                expect(res.body).to.have.keys(['tag2', 'tag3']);
+                done();
+            }).catch(done);
         });
     });
 });
