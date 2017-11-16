@@ -91,7 +91,7 @@ router.post('/recommended', function(req, res, next) {
         return subreddit2.total_subscribers - subreddit1.total_subscribers;
     });
 
-    if (!!req.body.tags && !!req.body.subscribed && !!req.body.blacklisted && !!req.body.maxRecommendations) {
+    if (req.body.tags && req.body.subscribed && req.body.blacklisted && req.body.maxRecommendations) {
         var blacklist = req.body.subscribed.concat(req.body.blacklisted);
 
         Subreddit.find({

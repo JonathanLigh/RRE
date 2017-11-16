@@ -129,7 +129,8 @@ describe('Subreddit Routes', () => {
             agent.post('/api/subreddits/recommended').send({
                 tags: ['tag1', 'tag2', 'tag3'],
                 subscribed: ['/r/SRTest5'],
-                blacklisted: ['/r/SRTest3']
+                blacklisted: ['/r/SRTest3'],
+                maxRecommendations: 5
             }).expect(200, done);
         });
 
@@ -141,9 +142,11 @@ describe('Subreddit Routes', () => {
             agent.post('/api/subreddits/recommended').send({
                 tags: ['tag1', 'tag2', 'tag3'],
                 subscribed: ['/r/SRTest5'],
-                blacklisted: ['/r/SRTest3']
+                blacklisted: ['/r/SRTest3'],
+                maxRecommendations: 5
             }).then(res => {
-                var list = res.body.output.map(element => element.subreddit)
+                // console.log(res.body);
+                var list = res.body.map(element => element.subreddit)
                     .reduce((a, b) => a.concat(b), []);
                 expect(list).to.not.have.members(['/r/SRTest3', '/r/SRTest5']);
                 done();

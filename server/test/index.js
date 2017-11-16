@@ -9,9 +9,12 @@ const models = require('../db/models');
 
 describe('Testing the server...', () => {
     after(done => {
-        models.Subreddit.remove({}).then(() => {
-            done();
-        })
+        models.Subreddit.remove({})
+        .then(() => {
+            return models.Tag.remove({})
+        }).then(() => {
+            done()
+        }).catch(done)
     });
 
     const options = {
