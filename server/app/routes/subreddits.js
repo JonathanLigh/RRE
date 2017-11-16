@@ -9,28 +9,56 @@ const ProgressBar = require('console-progress');
 const routeUtils = require('./utils.js');
 
 /*
-returns the top 5 recommended subreddits
+returns all unique tags of provided subreddits that are within the provided distance
   The req body will have:
+    a list of subreddits
+    maximum tag distance
+  The res body will have:
+    a map of tags and their distances
+*/
+router.post('/getTagsForSubreddits', function(req, res, next) {
+    if (!!req.body.subreddits && !!req.body.maxDistance) {
+        Subreddit.find({
+            url: {
+                $in: req.body.subreddits
+            }
+        }, function(err, subreddits) {
+            var tags = {};
+            var index;
+            for (index in subreddits) {
+                var currTags = subreddits[index].tags;
+                var i;
+                for (i in currTags) {
+                    var tag = currTags[i];
+                    if (!tags[tag.name]) {
+                        if (tag.distance <= req.body.maxDistance) {
+                            tags[tag.name] = tag.distance;
+                        }
+                    } else {
+                        if (tags[tag.name].distance > tag.distance) {
+                            tags[tag.name] = tag.distance;
+                        }
+                    }
+                }
+            }
+            res.status(200);
+            res.json(tags);
+        }).catch(next);
+    } else {
+        res.status(422).send('Unprocessable Entity')
+    }
+});
+
+/*
+returns the top (n) recommended subreddits
+  The req body will have:
+    number of recommendations to return (n)
+    a list of tags
     a list of subscribed subreddits
     a list of blacklisted subreddits (unwanted)
   The res body will have:
-    a list of the top 5 recommended
+    a list of the top (n) recommended, in order of relevancy
 */
-//  commented out as not yet implemented
-// router.get('/getTagsForSubreddit', function(req, res, next) {
-//     Subreddit.find().getTagsBySubreddits(req.body.subreddits).exec(function(err, res) {
-//         return res
-//     }).then(tags => {
-//         console.log(chalk.green("tags after getting them from every Subreddit passed in: " + tags));
-
-//         tags = tags.map(element => element.tags).reduce((a, b) => a.concat(b), []);
-//         return tags
-//     }).then(list => {
-//         res.status(200);
-//         res.json(list);
-//     }).catch(next);
-// });
-
 router.post('/recommended', function(req, res, next) {
     console.log("Searching For " + req.body.tags);
 
@@ -62,10 +90,8 @@ router.post('/recommended', function(req, res, next) {
         return subreddit2.total_subscribers - subreddit1.total_subscribers;
     });
 
-    if (req.body.tags && req.body.subscribed && req.body.blacklisted) {
-
+    if (!!req.body.tags && !!req.body.subscribed && !!req.body.blacklisted && !!req.body.maxRecommendations) {
         var blacklist = req.body.subscribed.concat(req.body.blacklisted);
-        var maxValues = 5;
 
         Subreddit.find({
             url: {
@@ -87,7 +113,7 @@ router.post('/recommended', function(req, res, next) {
                 }
             }
             var output = [];
-            for (index = 0; index < maxValues; index++) {
+            for (index = 0; index < req.body.maxRecommendations; index++) {
                 if (heap.empty()) {
                     break;
                 }
@@ -102,12 +128,11 @@ router.post('/recommended', function(req, res, next) {
                 });
             }
             res.status(200);
-            res.json({output});
+            res.json(output);
         }).catch(next);
     } else {
         res.status(422).send('Unprocessable Entity')
     }
-
 });
 
 module.exports = router;
