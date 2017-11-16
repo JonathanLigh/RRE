@@ -145,12 +145,23 @@ describe('Subreddit Routes', () => {
                 blacklisted: ['/r/SRTest3'],
                 maxRecommendations: 5
             }).then(res => {
-                // console.log(res.body);
                 var list = res.body.map(element => element.subreddit)
                     .reduce((a, b) => a.concat(b), []);
                 expect(list).to.not.have.members(['/r/SRTest3', '/r/SRTest5']);
                 done();
             }).catch(done);
+
+        it('recommendation returns a list of at most maxRecommendations length', (done) => {
+            agent.post('/api/subreddits/recommended').send({
+                tags: ['tag1', 'tag2', 'tag3'],
+                subscribed: ['/r/SRTest5'],
+                blacklisted: ['/r/SRTest3'],
+                maxRecommendations: 2
+            }).then(res => {
+                expect(res.body.length).to.have.length(2);
+                done();
+            }).catch(done);
+        });
         });
     });
 });
