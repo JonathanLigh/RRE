@@ -14,7 +14,7 @@ const subredditSchema = new Schema({
         },
         distance: {
             type: Number,
-            required: false,
+            required: false
         }
     }],
     numSubscribers: {
@@ -31,16 +31,24 @@ we do not use ES6 arrow functions here because it prevents binding with "this"
 ref: http://mongoosejs.com/docs/guide.html
 takes:
   subredditNames
+  maxMentionDistance
 returns:
   the query for finding each
 */
-subredditSchema.query.getTagsBySubreddits = function(names) {
-    return this.find({
-        url: {
-            $in: names
-        }
-    }).select('tags')
-}
+// subredditSchema.query.getTagsBySubreddits = function(subredditNames, maxMentionDistance) {
+//     return this.find({
+//         url: {
+//             $in: subredditNames
+//         },
+//         tags: {
+//             $elemMatch: {
+//                     distance: {
+//                         $lte: maxMentionDistance
+//                     }
+//                 }
+//             }
+//         }).select('tags.name tags.distance')
+// }
 
 /*
 takes:
