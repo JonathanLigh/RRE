@@ -384,5 +384,78 @@ describe('Testing the crawler...', () => {
                 });
             });
         });
+
+        describe('Testing parseRecursive', () => {
+            it('whenCreatingMultipleSubreddits_parseRecursive_subredditsCreatedAndUpdatedCorrectly', () => {
+                var existingSubredditURL = utils.uuid("existing");
+                var existingSubredditData = {
+                    url: existingSubredditURL,
+                    tags: [{
+                        name: "existingTag",
+                        distance: 0
+                    }, {
+                        name: "toBeUpdatedTag",
+                        distance: 10
+                    }],
+                    relatedSubreddits: [],
+                    numSubscribers: 1
+                };
+                Subreddit.create(existingSubredditData, function(err, existingSubreddit) {
+                    var discoveredSubredditURL1 = utils.uuid("discovered1");
+                    var discoveredSubredditURL2 = utils.uuid("discovered2");
+                    var subredditsData = [{
+                        data: {
+                            url: discoveredSubredditURL1,
+                            audience_target: "toBeUpdatedTag",
+                            subscribers: 2,
+                            description: existingSubredditURL
+                        }
+                    }, {
+                        data: {
+                            url: discoveredSubredditURL2,
+                            audience_target: "newTag",
+                            subscribers: 2,
+                            description: discoveredSubredditURL1
+                        }
+                    }];
+
+                    // When
+                    crawler._parseRecursive(subredditsData, function() {
+
+                        // Then
+                        Subreddit.findOne({
+                            url: existingSubredditURL
+                        }, function(err, existingSubreddit) {
+                            if (!existingSubreddit) {
+                                fail("Subreddit Not Found");
+                            }
+
+                            equalTo(existingSubreddit.relatedSubreddits.length, 1);
+                            equalTo(existingSubreddit.tags.length, 3);
+                            var matchedCount = 0;
+                            var i;
+                            for (i in existingSubreddit.tags) {
+                                var tag = existingSubreddit.tags[i];
+                                if (tag.name === "existingTag") {
+                                    matchedCount++;
+                                    equalTo(tag.distance, 0);
+                                }
+                                if (tag.name === "toBeUpdatedTag") {
+                                    matchedCount++;
+                                    equalTo(tag.distance, 1);
+                                }
+                                if (tag.name === "newTag") {
+                                    matchedCount++;
+                                    equalTo(tag.distance, 2);
+                                }
+                            }
+                            equalTo(matchedCount, 3);
+                        });
+                    });
+                }).catch(function(err) {
+                    console.log("¯\\_(ツ)_/¯" + err);
+                });
+            });
+        });
     });
 });

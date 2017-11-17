@@ -35,7 +35,7 @@ const subreddits = [{
         name: 'tag3',
         distance: 2
     }],
-    numSubscribers: 100,
+    numSubscribers: 10,
     _relatedSubreddits: []
 }, {
     url: '/r/SRTest3',
@@ -63,7 +63,7 @@ const subreddits = [{
         name: 'tag3',
         distance: 6
     }],
-    numSubscribers: 100,
+    numSubscribers: 1000,
     _relatedSubreddits: []
 }, {
     url: '/r/SRTest5',
@@ -77,7 +77,7 @@ const subreddits = [{
         name: 'tag3',
         distance: 1
     }],
-    numSubscribers: 100,
+    numSubscribers: 10000,
     _relatedSubreddits: []
 }, {
     url: '/r/SRTest6',
@@ -91,7 +91,7 @@ const subreddits = [{
         name: 'tag5',
         distance: 7
     }],
-    numSubscribers: 100,
+    numSubscribers: 100001,
     _relatedSubreddits: []
 }, {
     url: '/r/SRTest7',
@@ -105,7 +105,7 @@ const subreddits = [{
         name: 'tag5',
         distance: 2
     }],
-    numSubscribers: 100,
+    numSubscribers: 100011,
     _relatedSubreddits: []
 }]
 
@@ -151,17 +151,47 @@ describe('Subreddit Routes', () => {
                 done();
             }).catch(done);
 
-        it('recommendation returns a list of at most maxRecommendations length', (done) => {
-            agent.post('/api/subreddits/recommended').send({
-                tags: ['tag1', 'tag2', 'tag3'],
-                subscribed: ['/r/SRTest5'],
-                blacklisted: ['/r/SRTest3'],
-                maxRecommendations: 2
+            it('recommendation returns a list of at most maxRecommendations length', (done) => {
+                agent.post('/api/subreddits/recommended').send({
+                    tags: ['tag1', 'tag2', 'tag3'],
+                    subscribed: ['/r/SRTest5'],
+                    blacklisted: ['/r/SRTest3'],
+                    maxRecommendations: 2
+                }).then(res => {
+                    expect(res.body.length).to.have.length(2);
+                    done();
+                }).catch(done);
+            });
+        });
+    });
+
+    describe('POST /api/subreddits/getTagsForSubreddits', () => {
+        it('responds with 200', (done) => {
+            agent.post('/api/subreddits/getTagsForSubreddits').send({
+                subreddits: ['/r/SRTest1'],
+                maxDistance: 10
             }).then(res => {
-                expect(res.body.length).to.have.length(2);
+                var tags = Object.keys(res.body);
+                expect(tags).to.have.members(['tag3', 'tag2']);
                 done();
             }).catch(done);
         });
+
+        it('responds with 422 if req data not sent', (done) => {
+            agent.post('/api/subreddits/getTagsForSubreddits').expect(422, done);
+        });
+
+        it('returns a list of unique tags with limited max distance', (done) => {
+            agent.post('/api/subreddits/getTagsForSubreddits').send({
+                subreddits: ['/r/SRTest1', '/r/SRTest3', '/r/SRTest5', '/r/SRTest6'],
+                maxDistance: 4
+            }).then(res => {
+                var tags = Object.keys(res.body);
+                expect(tags).to.have.members(['tag1', 'tag2', 'tag3']);
+                expect(tags).to.not.have.members(['tag5']);
+                expect(tags).to.have.length(3);
+                done();
+            }).catch(done);
         });
     });
 });

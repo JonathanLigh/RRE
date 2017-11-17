@@ -321,22 +321,32 @@ module.exports = {
     },
     _buildURL: function(after) {
         testingMode = true;
+        logging = true;
         return buildURL(after);
     },
     _parseSubreddit: function(subreddit, callback) {
         testingMode = true;
+        logging = true;
         return parseSubreddit(subreddit, callback);
+    },
+    _parseRecursive: function(subredditsData, callback) {
+        testingMode = true;
+        logging = true;
+        return parseRecursive(subredditsData, 0, callback);
     },
     _updateSubreddit: function(subredditData, callback) {
         testingMode = true;
+        logging = true;
         return updateSubreddit(subredditData, callback);
     },
     _propagateSubredditData: function(subredditURL, parentSubreddit, depth, searched) {
         testingMode = true;
+        logging = true;
         return propagateSubredditData(subredditURL, parentSubreddit, depth, searched);
     },
     _updateTag: function(subredditData, newTag, depth) {
         testingMode = true;
+        logging = true;
         return updateTag(subredditData, newTag, depth);
     }
 };
