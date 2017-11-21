@@ -10,7 +10,7 @@ const Tag = models.Tag;
 var batchSize = 1;
 
 var logging = false;
-var recusiveLogging = false;
+var recusiveLogging = true;
 
 var testingMode = false;
 var triggerExit = false;
@@ -52,9 +52,7 @@ function getReddits(after) {
 }
 
 function parseRecursive(subreddits, currIndex, resolveCallback) {
-    if (logging) {
-        console.log("Parsing Subreddit " + currIndex);
-    }
+    console.log("Parsing Subreddit " + (currIndex + 1) + "/" + batchSize);
     parseSubreddit(subreddits[currIndex].data, function() {
         currIndex++;
         if (currIndex >= subreddits.length) {
@@ -129,7 +127,7 @@ function parseSubreddit(subredditData, callback) {
 
             console.log(`Finished ${subredditData.url}`);
 
-            callback();
+            process.nextTick(callback);
         });
     });
 }
