@@ -53,8 +53,7 @@ function getReddits(after) {
 
 function parseRecursive(subreddits, currIndex, resolveCallback) {
     console.log("Parsing Subreddit " + (currIndex + 1) + "/" + batchSize);
-    parseSubreddit(subreddits[currIndex].data, function(name) {
-        state.after = name;
+    parseSubreddit(subreddits[currIndex].data, function() {
         currIndex++;
         if (currIndex >= subreddits.length) {
             resolveCallback();
@@ -120,15 +119,20 @@ function parseSubreddit(subredditData, callback) {
         subreddit._relatedSubreddits = descriptionParser.getMentionedSubreddits(subredditData);
 
         updateSubreddit(subreddit, function(updatedSubreddit) {
-            for (i = 0; i < subreddit._relatedSubreddits.length; i++) {
+            /*for (i = 0; i < subreddit._relatedSubreddits.length; i++) {
                 var subredditURL = subreddit._relatedSubreddits[i];
                 console.log("Updating (" + (i + 1) + "/" + subreddit._relatedSubreddits.length + "): " + subredditURL);
                 propagateSubredditData(subredditURL, updatedSubreddit, 1, [updatedSubreddit.url]);
+            }*/
+            if (!!updatedSubreddit._relatedSubreddits && updatedSubreddit._relatedSubreddits.length > 0) {
+                propagateRecursive(updatedSubreddit._relatedSubreddits, updatedSubreddit, 1, [updatedSubreddit.url], false, 0, function() {
+                    console.log(`Finished ${subredditData.url}`);
+                    process.nextTick(callback);
+                })
+            } else {
+                console.log(`Finished ${subredditData.url}`);
+                process.nextTick(callback);
             }
-
-            console.log(`Finished ${subredditData.url}`);
-
-            process.nextTick(callback, subredditData.name);
         });
     });
 }
@@ -157,15 +161,47 @@ function updateSubreddit(subreddit, callback) {
     });
 }
 
-function propagateSubredditData(subredditURL, parentSubreddit, depth, searched) {
-    // subredditURL is expected to be in the form of '/r/name'
-    var loggingIndent = "";
+function propagateRecursive(relatedSubreddits, parentSubreddit, depth, searched, backtrack, currIndex, resolveCallback) {
+    var loggingIndent = "  ";
     if (logging || recusiveLogging) {
         var count;
         for (count = 0; count < depth; count++) {
             loggingIndent += "  ";
         }
     }
+    var subredditURL = relatedSubreddits[currIndex];
+    if (backtrack) {
+        var searchedIndex = searched.indexOf(subredditURL);
+        if (searchedIndex > -1) {
+            searched.splice(searchedIndex, 1);
+            if (logging) {
+                console.log(loggingIndent + "Need to scan " + subredditURL + " again in case changes relate.");
+            }
+        }
+        if (logging || recusiveLogging) {
+            console.log(
+                loggingIndent + "Updating (" + (currIndex + 1) + "/" + relatedSubreddits.length + "): " + parentSubreddit.url + " => " + subredditURL
+            );
+        }
+    } else {
+        console.log(loggingIndent + "Updating (" + (currIndex + 1) + "/" + relatedSubreddits.length + "): " + subredditURL);
+    }
+
+    propagateSubredditData(subredditURL, parentSubreddit, depth, searched, function() {
+        if (logging) {
+            console.log(loggingIndent + "Finished: " + subredditURL);
+        }
+        currIndex++;
+        if (currIndex >= relatedSubreddits.length) {
+            resolveCallback();
+        } else {
+            propagateRecursive(relatedSubreddits, parentSubreddit, depth, searched, backtrack, currIndex, resolveCallback);
+        }
+    });
+}
+
+function propagateSubredditData(subredditURL, parentSubreddit, depth, searched, callback) {
+    // subredditURL is expected to be in the form of '/r/name'
 
     // Statistical analysis
     if (state.maxDepthReached < depth) {
@@ -173,65 +209,54 @@ function propagateSubredditData(subredditURL, parentSubreddit, depth, searched) 
         state.maxDepthSubreddit = subredditURL;
     }
 
+    if (searched.indexOf(null) !== -1) {
+        // Pray this never happens.
+        console.log(searched + "aaaaaaaa" + parentSubreddit);
+    }
+
     // Handle self referential loops
     if (searched.indexOf(subredditURL) !== -1) {
         if (logging) {
-            console.log(loggingIndent + "Already Searched: " + subredditURL);
+            console.log("Already Searched: " + subredditURL);
         }
-        return;
-    }
-
-    Subreddit.findOneAndUpdate({
-        url: subredditURL
-    }, {}, {
-        new: true,
-        upsert: true
-    }, function(err, subreddit) {
-        if (subreddit._relatedSubreddits.indexOf(parentSubreddit.url) === -1) {
-            subreddit._relatedSubreddits.push(parentSubreddit.url);
-        }
-        if (!!err) {
-            console.log("error in propagate: " + err);
-        }
-
-        // subreddit was either found or created, we want to update tags regardless next.
-        var updatedTags = false;
-        var i;
-        for (i in parentSubreddit.tags) {
-            updatedTags = updatedTags || updateTag(subreddit, parentSubreddit.tags[i], depth);
-        }
-        if (updatedTags) {
-            // If the tags were modified we should update the subreddit
-            updateSubreddit(subreddit, function(updatedSubreddit) {
-                if (!!updatedSubreddit._relatedSubreddits) {
-                    var relatedIndex;
-                    for (relatedIndex = 0; relatedIndex < updatedSubreddit._relatedSubreddits.length; relatedIndex++) {
-                        // we want to update any possible tags that weren't originally referenced.
-                        var nextURL = updatedSubreddit._relatedSubreddits[relatedIndex];
-                        var searchedIndex = searched.indexOf(nextURL);
-                        if (searchedIndex > -1) {
-                            searched.splice(searchedIndex, 1);
-                            if (logging) {
-                                console.log(loggingIndent + "Need to scan " + nextURL + " again in case changes relate.");
-                            }
-                        }
-                        if (logging || recusiveLogging) {
-                            console.log(
-                                loggingIndent + "Updating (" + (relatedIndex + 1) + "/" + updatedSubreddit._relatedSubreddits.length +
-                                "): " + updatedSubreddit.url + " => " + nextURL
-                            );
-                        }
-                        propagateSubredditData(nextURL, updatedSubreddit, depth + 1, searched);
-                    }
-                }
-            });
-        } else {
-            if (logging) {
-                console.log(loggingIndent + "Finished: " + subredditURL);
+        callback();
+    } else {
+        Subreddit.findOneAndUpdate({
+            url: subredditURL
+        }, {}, {
+            new: true,
+            upsert: true
+        }, function(err, subreddit) {
+            if (subreddit._relatedSubreddits.indexOf(parentSubreddit.url) === -1) {
+                subreddit._relatedSubreddits.push(parentSubreddit.url);
             }
-            searched.push(subredditURL);
-        }
-    });
+            if (!!err) {
+                console.log("error in propagate: " + err);
+            }
+
+            // subreddit was either found or created, we want to update tags regardless next.
+            var updatedTags = false;
+            var i;
+            for (i in parentSubreddit.tags) {
+                updatedTags = updatedTags || updateTag(subreddit, parentSubreddit.tags[i], depth);
+            }
+            if (updatedTags) {
+                // If the tags were modified we should update the subreddit
+                updateSubreddit(subreddit, function(updatedSubreddit) {
+                    if (!!updatedSubreddit._relatedSubreddits && updatedSubreddit._relatedSubreddits.length > 0) {
+                        propagateRecursive(updatedSubreddit._relatedSubreddits, updatedSubreddit, depth + 1, searched, true, 0, function() {
+                            callback();
+                        });
+                    } else {
+                        callback();
+                    }
+                });
+            } else {
+                searched.push(subredditURL);
+                callback();
+            }
+        });
+    }
 }
 
 // Tags are {name:"tagName", distance:X}
