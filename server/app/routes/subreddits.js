@@ -63,31 +63,19 @@ router.post('/recommended', function(req, res, next) {
     console.log("Searching For " + JSON.stringify(req.body));
 
     var heap = new Heap(function(subreddit1, subreddit2) {
-        // Could we make this more efficient by storing data? Currently runs decently fast anyway...
+        // Inverse the score so that elements in the heap with the "highest score" are the worst match.
 
         var subreddit1Tags = !subreddit1.tags ? [] : routeUtils.getMatchingTags(subreddit1.tags, req.body.tags);
         var subreddit2Tags = !subreddit2.tags ? [] : routeUtils.getMatchingTags(subreddit2.tags, req.body.tags);
 
-        var tagDifference = subreddit2Tags.length - subreddit1Tags.length;
-        if (tagDifference !== 0) {
+        var integralScore = -1 * routeUtils.calculateIntegralScore(subreddit1Tags, subreddit2Tags);
+        if (integralScore !== 0) {
             //console.log("Result: " + tagDifference);
-            return tagDifference;
-        }
-
-        var tagSumDifference = routeUtils.getMentionDistanceSum(subreddit1Tags) - routeUtils.getMentionDistanceSum(subreddit2Tags);
-        if (tagSumDifference !== 0) {
-            //console.log("Result: " + tagSumDifference);
-            return tagSumDifference;
-        }
-
-        var tagMinDifference = routeUtils.getMinMentionDistance(subreddit1Tags) - routeUtils.getMinMentionDistance(subreddit2Tags);
-        if (tagMinDifference !== 0) {
-            //console.log("Result: " + tagMinDifference);
-            return tagMinDifference;
+            return integralScore;
         }
 
         // Popularity Difference
-        return subreddit2.total_subscribers - subreddit1.total_subscribers;
+        return subreddit1.total_subscribers - subreddit2.total_subscribers;
     });
 
     if (!!req.body.tags && !!req.body.subscribed && !!req.body.blacklisted && !!req.body.maxRecommendations) {
@@ -107,7 +95,12 @@ router.post('/recommended', function(req, res, next) {
             });
 
             for (index in parsedSubreddits) {
-                heap.push(parsedSubreddits[index]);
+                // heap will never exceed maxRecommendations size for maximum efficiency of algorithm
+                if (heap.size() >= req.body.maxRecommendations) {
+                    heap.pushpop(parsedSubreddits[index]);
+                } else {
+                    heap.push(parsedSubreddits[index]);
+                }
                 if (index % progressBarScale === 0) {
                     bar.tick();
                 }
@@ -118,15 +111,14 @@ router.post('/recommended', function(req, res, next) {
                     break;
                 }
                 var subreddit = heap.pop();
-                var subredditTagsMatched = routeUtils.getMatchingTags(subreddit.tags, req.body.tags);
                 output.push({
                     subreddit: subreddit.url,
-                    rank: index,
-                    tagsMatched: subredditTagsMatched.length,
-                    tagScore: routeUtils.getMentionDistanceSum(subredditTagsMatched),
-                    depth: routeUtils.getMinMentionDistance(subredditTagsMatched)
+                    rank: req.body.maxRecommendations - index
                 });
             }
+            // Reverse the output so that the best recommendations come first.
+            output.reverse();
+
             res.status(200);
             res.json(output);
         }).catch(next);

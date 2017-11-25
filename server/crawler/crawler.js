@@ -119,11 +119,6 @@ function parseSubreddit(subredditData, callback) {
         subreddit._relatedSubreddits = descriptionParser.getMentionedSubreddits(subredditData);
 
         updateSubreddit(subreddit, function(updatedSubreddit) {
-            /*for (i = 0; i < subreddit._relatedSubreddits.length; i++) {
-                var subredditURL = subreddit._relatedSubreddits[i];
-                console.log("Updating (" + (i + 1) + "/" + subreddit._relatedSubreddits.length + "): " + subredditURL);
-                propagateSubredditData(subredditURL, updatedSubreddit, 1, [updatedSubreddit.url]);
-            }*/
             if (!!updatedSubreddit._relatedSubreddits && updatedSubreddit._relatedSubreddits.length > 0) {
                 propagateRecursive(updatedSubreddit._relatedSubreddits, updatedSubreddit, 1, [updatedSubreddit.url], false, 0, function() {
                     console.log(`Finished ${subredditData.url}`);

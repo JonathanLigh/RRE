@@ -6,6 +6,7 @@ package-lock.json
 .DS_Store
 .nyc_output
 state.json
+state.json~
 
 /server/*.pem
 /server/*.csr
