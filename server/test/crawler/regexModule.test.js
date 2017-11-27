@@ -17,7 +17,8 @@ describe('Testing getListOfMatches', () => {
       }).then(() => {
         done();
       }).catch(done)
-  })
+    })
+
     it('whenNoMatches_getListOfMatches_returnEmptyList', () => {
         // Given
         var search = "abcda";
