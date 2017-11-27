@@ -8,6 +8,12 @@ const Heap = require('heap');
 const ProgressBar = require('console-progress');
 const routeUtils = require('./utils.js');
 
+router.use(function(req, res, next) {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
+    next();
+});
+
 /*
 returns all unique tags of provided subreddits that are within the provided distance
   The req body will have:
