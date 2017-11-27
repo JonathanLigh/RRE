@@ -35,11 +35,12 @@ describe('Testing the server...', () => {
         console.log(chalk.yellow('closing connection to MongoDB', TEST_URI));
         con.close();
     });
+
     // Run the rest of tests
-    require('./crawler/crawler.test.js');
-    require('./crawler/descriptionParser.test.js');
-    require('./crawler/regexModule.test.js');
     require('./db/subreddit.model.test.js');
     require('./routes/subreddits.routes.test.js');
     require('./routes/tags.routes.test.js');
+    require('./crawler/crawler.test.js')
+    require('./crawler/descriptionParser.test.js');
+    require('./crawler/regexModule.test.js');
 });

@@ -44,9 +44,11 @@ describe('Tag Routes', () => {
 
         it('responds with tags in the database', (done) => {
             agent.get('/api/tags').then(res => {
+                var list = res.body.map(element => element.name)
+                    .reduce((a, b) => a.concat(b), []);
                 expect(res.body).to.exist;
                 expect(res.body.length).to.equal(4);
-
+                expect(list).to.have.deep.members(['tag1', 'tag2', 'tag3', 'tag4']);
                 done();
             }).catch(done);
         });

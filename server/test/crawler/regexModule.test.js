@@ -2,22 +2,12 @@ const chai = require('chai');
 const spies = require('chai-spies');
 chai.use(spies);
 const equalTo = chai.assert.strictEqual;
+const regex = require('../../crawler/regexModule')
 const models = require('../../db/models');
-const Tag = models.Tag;
 const Subreddit = models.Subreddit;
-var regex = require('../../crawler/regexModule')
+const Tag = models.Tag;
 
 describe('Testing getListOfMatches', () => {
-    //  need to flush the testing database of all the information
-    //  created from the crawler tests
-    after(done => {
-      Tag.remove({})
-      .then(() => {
-          return Subreddit.remove({})
-      }).then(() => {
-        done();
-      }).catch(done)
-    })
 
     it('whenNoMatches_getListOfMatches_returnEmptyList', () => {
         // Given
@@ -70,6 +60,7 @@ describe('Testing getListOfMatches', () => {
 });
 
 describe('Testing getNameFromURL', () => {
+
     it('whenUrlCapitalized_getNameFromURL_returnLowercaseName', () => {
         // Given
         var url = "/R/NAME";

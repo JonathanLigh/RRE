@@ -7,9 +7,21 @@ const fail = chai.assert.fail;
 const crawler = require('../../crawler/crawler');
 const models = require('../../db/models');
 const Subreddit = models.Subreddit;
+const Tag = models.Tag;
 const fs = require('fs');
 
 describe('Testing the crawler...', () => {
+    // //  need to flush the testing database of all the information
+    // //  created from the crawler tests
+    // after(done => {
+    //   Subreddit.remove({})
+    //   .then(() => {
+    //    return Tag.remove({})
+    //   })
+    //   .then(() => {
+    //     done();
+    //   }).catch(done)
+    // })
     describe('helper functions', () => {
         describe('Testing buildURL', () => {
             it('buildURL_noAfter', () => {
@@ -156,7 +168,7 @@ describe('Testing the crawler...', () => {
                         distance: 0
                     }],
                     name: "test_parent",
-                    relatedSubreddits: [childSubredditURL]
+                    _relatedSubreddits: [childSubredditURL]
                 };
                 var depth = 1;
                 var searched = [];
@@ -173,14 +185,14 @@ describe('Testing the crawler...', () => {
                             fail("childSubreddit Not Created!");
                         }
 
-                        equalTo(childSubreddit.relatedSubreddits.length, 1);
-                        equalTo(childSubreddit.relatedSubreddits[0], parentSubredditURL);
+                        equalTo(childSubreddit._relatedSubreddits.length, 1);
+                        equalTo(childSubreddit._relatedSubreddits[0], parentSubredditURL);
                         equalTo(childSubreddit.tags.length, 1);
                         equalTo(childSubreddit.tags[0].name, "tag");
                         equalTo(childSubreddit.tags[0].distance, 1);
 
-                        equalTo(parentSubreddit.relatedSubreddits.length, 1);
-                        equalTo(parentSubreddit.relatedSubreddits[0], childSubredditURL);
+                        equalTo(parentSubreddit._relatedSubreddits.length, 1);
+                        equalTo(parentSubreddit._relatedSubreddits[0], childSubredditURL);
                         equalTo(parentSubreddit.tags.length, 1);
                         equalTo(parentSubreddit.tags[0].name, "tag");
                         equalTo(parentSubreddit.tags[0].distance, 0);
@@ -201,7 +213,7 @@ describe('Testing the crawler...', () => {
                         name: "parentTag",
                         distance: 0
                     }],
-                    relatedSubreddits: [existingSubredditURL]
+                    _relatedSubreddits: [existingSubredditURL]
                 };
                 var depth = 1;
                 var searched = [];
@@ -213,7 +225,7 @@ describe('Testing the crawler...', () => {
                             name: "existingTag",
                             distance: 0
                         }],
-                        relatedSubreddits: []
+                        _relatedSubreddits: []
                     };
 
                     Subreddit.create(existingSubredditData, function(err, existingSubreddit) {
@@ -221,16 +233,16 @@ describe('Testing the crawler...', () => {
                         crawler._propagateSubredditData(subredditURL, parentSubredditData, depth, searched);
 
                         // Then
-                        equalTo(existingSubreddit.relatedSubreddits.length, 1);
-                        equalTo(existingSubreddit.relatedSubreddits[0], parentSubredditURL);
+                        equalTo(existingSubreddit._relatedSubreddits.length, 1);
+                        equalTo(existingSubreddit._relatedSubreddits[0], parentSubredditURL);
                         equalTo(existingSubreddit.tags.length, 2);
                         equalTo(existingSubreddit.tags[0].name, "existingTag");
                         equalTo(existingSubreddit.tags[0].distance, 0);
                         equalTo(existingSubreddit.tags[1].name, "parentTag");
                         equalTo(existingSubreddit.tags[1].distance, 1);
 
-                        equalTo(parentSubreddit.relatedSubreddits.length, 1);
-                        equalTo(parentSubreddit.relatedSubreddits[0], existingSubredditURL);
+                        equalTo(parentSubreddit._relatedSubreddits.length, 1);
+                        equalTo(parentSubreddit._relatedSubreddits[0], existingSubredditURL);
                         equalTo(parentSubreddit.tags.length, 2);
                         equalTo(parentSubreddit.tags[0].name, "parentTag");
                         equalTo(parentSubreddit.tags[0].distance, 0);
@@ -264,7 +276,7 @@ describe('Testing the crawler...', () => {
                             fail("Subreddit Not Created");
                         }
 
-                        equalTo(createdSubreddit.relatedSubreddits.length, 0);
+                        equalTo(createdSubreddit._relatedSubreddits.length, 0);
                         equalTo(createdSubreddit.tags.length, 0);
                         equalTo(createdSubreddit.url, subredditURL);
                         equalTo(createdSubreddit.numSubscribers, 1);
@@ -292,7 +304,7 @@ describe('Testing the crawler...', () => {
                             fail("Subreddit Not Created");
                         }
 
-                        equalTo(createdSubreddit.relatedSubreddits.length, 0);
+                        equalTo(createdSubreddit._relatedSubreddits.length, 0);
                         equalTo(createdSubreddit.tags.length, 1);
                         equalTo(createdSubreddit.tags[0].name, "tag");
                         equalTo(createdSubreddit.tags[0].distance, 0);
@@ -331,14 +343,14 @@ describe('Testing the crawler...', () => {
                                 fail("Child Subreddit Not Created");
                             }
 
-                            equalTo(parentSubreddit.relatedSubreddits.length, 1);
-                            equalTo(parentSubreddit.relatedSubreddits[0], childSubredditURL);
+                            equalTo(parentSubreddit._relatedSubreddits.length, 1);
+                            equalTo(parentSubreddit._relatedSubreddits[0], childSubredditURL);
                             equalTo(parentSubreddit.tags.length, 0);
                             equalTo(parentSubreddit.url, parentSubredditURL);
                             equalTo(parentSubreddit.numSubscribers, 1);
 
-                            equalTo(childSubreddit.relatedSubreddits.length, 1);
-                            equalTo(childSubreddit.relatedSubreddits[0], parentSubredditURL);
+                            equalTo(childSubreddit._relatedSubreddits.length, 1);
+                            equalTo(childSubreddit._relatedSubreddits[0], parentSubredditURL);
                             equalTo(childSubreddit.tags.length, 0);
                             equalTo(childSubreddit.url, childSubredditURL);
                         });
@@ -352,7 +364,7 @@ describe('Testing the crawler...', () => {
                 var existingSubredditData = {
                     url: subredditURL,
                     tags: [],
-                    relatedSubreddits: [],
+                    _relatedSubreddits: [],
                     numSubscribers: 1
                 };
                 Subreddit.create(existingSubredditData, function(err, existingSubreddit) {
@@ -373,7 +385,7 @@ describe('Testing the crawler...', () => {
                                 fail("Subreddit Not Found");
                             }
 
-                            equalTo(existingSubreddit.relatedSubreddits.length, 0);
+                            equalTo(existingSubreddit._relatedSubreddits.length, 0);
                             equalTo(existingSubreddit.tags.length, 0);
                             equalTo(existingSubreddit.url, subredditURL);
                             equalTo(existingSubreddit.numSubscribers, 2);
@@ -397,7 +409,7 @@ describe('Testing the crawler...', () => {
                         name: "toBeUpdatedTag",
                         distance: 10
                     }],
-                    relatedSubreddits: [],
+                    _relatedSubreddits: [],
                     numSubscribers: 1
                 };
                 Subreddit.create(existingSubredditData, function(err, existingSubreddit) {
@@ -430,7 +442,7 @@ describe('Testing the crawler...', () => {
                                 fail("Subreddit Not Found");
                             }
 
-                            equalTo(existingSubreddit.relatedSubreddits.length, 1);
+                            equalTo(existingSubreddit._relatedSubreddits.length, 1);
                             equalTo(existingSubreddit.tags.length, 3);
                             var matchedCount = 0;
                             var i;
