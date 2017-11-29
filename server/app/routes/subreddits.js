@@ -85,13 +85,19 @@ router.post('/recommended', function(req, res, next) {
     });
 
     if (!!req.body.tags && !!req.body.subscribed && !!req.body.blacklisted && !!req.body.maxRecommendations) {
-        var blacklist = req.body.subscribed.concat(req.body.blacklisted);
+        var blacklist = [];
+        for (i in req.body.blacklisted) {
+            blacklist.push(req.body.blacklisted[i].subreddit);
+        }
+
+        blacklist = req.body.subscribed.concat(blacklist);
 
         Subreddit.find({
             url: {
                 $nin: blacklist
             }
         }, function(err, parsedSubreddits) {
+            //console.log(err);
             var progressBarScale = 100;
             var bar = ProgressBar.getNew('[:bar] :eta Seconds Remaining', {
                 complete: '=',
