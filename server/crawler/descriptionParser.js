@@ -10,8 +10,7 @@ function cleanDescriptionForLanguageSearch(description) {
 }
 
 function cleanDescription(description) {
-    return description
-        .replace(/(?:https?|ftp):\/\/[\n\S]+/g, ' ') // Remove all URLs
+    return description.replace(/(?:https?|ftp):\/\/[\n\S]+/g, ' ') // Remove all URLs
 }
 
 module.exports = {

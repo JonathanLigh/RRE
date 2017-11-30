@@ -1,9 +1,15 @@
 const models = require('../../db/models');
 const Subreddit = models.Subreddit;
 
-// all constants below are arbitrary rn
+// Constants below are used to tweak recommendation order
+
+// The weight applied to a subreddits "best" matching tag
 const initialIntegralConst = 25.0;
+
+// The value by which the initialIntegralConst is divided by for each sequential "worse" matching tag
 const integralLinearReductionConst = 9.0;
+
+// How far a the distance of a matching tag has to be in order to be thrown out of the comparison
 const functionallyIrrelevantDistance = 100;
 
 function matchArrayLengths(array1, array2) {
@@ -63,14 +69,6 @@ module.exports = {
             integralScore += (integrals1[i] - integrals2[i]) * integralConst;
             integralConst /= integralLinearReductionConst;
         }
-        // console.log("s1: " + integrals1 + " " + "s2: " + integrals2 + " " + "Score: " + integralScore);
-        // a [0,3,10] => [0,3,13]
-        // b [1,1,6] => [1,2,8]
-        // [c=c/2, starts at 10] -10 -> -5 -> 7.5 (b)
-
-        // a [10, 29, 29] => [10, 39, 68]
-        // b [9] => [9, 39, 69]
-        // 10 -> 10 -> 7.5 (b)
         return integralScore;
     }
 }

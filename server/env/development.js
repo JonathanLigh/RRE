@@ -1,3 +1,3 @@
 module.exports = {
-  DATABASE_URI: 'mongodb://localhost/RREdb'
+    DATABASE_URI: 'mongodb://localhost/RREdb'
 };

@@ -8,9 +8,8 @@ const DATABASE_USER = ENV_VARIABLES.DATABASE_USER;
 const DATABASE_PASSWORD = ENV_VARIABLES.DATABASE_PASSWORD;
 
 // Options for connecting to MongoDB
-// We can add more later
 const options = {
-  useMongoClient: true
+    useMongoClient: true
 };
 
 // Replace mongoose's promise library using bluebird's
