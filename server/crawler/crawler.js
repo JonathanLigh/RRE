@@ -1,6 +1,7 @@
 const https = require('https');
 const fileSystem = require('fs');
 const exitHook = require('exit-hook');
+const chalk = require('chalk');
 const regex = require('./regexModule');
 const descriptionParser = require('./descriptionParser');
 const models = require('../db/models');
@@ -75,61 +76,65 @@ function buildURL(after) {
 }
 
 function parseSubreddit(subredditData, callback) {
-    subredditData.url = subredditData.url.toLowerCase();
-    console.log("Found " + subredditData.url);
     if (!subredditData) {
-        console.log("No data was provided");
-    }
-    Subreddit.findOneAndUpdate({
-        url: subredditData.url
-    }, {}, {
-        new: true,
-        upsert: true,
-        setDefaultsOnInsert: true
-    }, function(err, subreddit) {
-        if (!!err) {
-            console.log("error in parseSubreddit: " + err);
-        }
+        console.log(chalk.red("parseSubreddit called with no data"));
+        process.nextTick(callback);
+    } else {
+        subredditData.url = subredditData.url.toLowerCase();
+        console.log("Found " + subredditData.url);
+        Subreddit.findOneAndUpdate({
+            url: subredditData.url
+        }, {}, {
+            new: true,
+            upsert: true,
+            setDefaultsOnInsert: true
+        }, function(err, subreddit) {
+            if (!!err) {
+                console.log(chalk.red("Fatal Error in parseSubreddit:\n") + chalk.yellow(err));
+                saveStateSync();
+                process.exit(1);
+            }
 
-        subreddit.numSubscribers = subredditData.subscribers;
+            subreddit.numSubscribers = subredditData.subscribers;
 
-        const csvMatcher = /\b[\w\s]+\b/gi;
-        var tags = regex.getListOfMatches(subredditData.audience_target, csvMatcher);
-        var i;
-        for (i in tags) {
-            updateTag(subreddit, {
-                name: tags[i],
-                distance: 0
-            }, 0);
+            const csvMatcher = /\b[\w\s]+\b/gi;
+            var tags = regex.getListOfMatches(subredditData.audience_target, csvMatcher);
+            var i;
+            for (i in tags) {
+                updateTag(subreddit, {
+                    name: tags[i],
+                    distance: 0
+                }, 0);
 
-            // Put the tag in the overall tags table if it doesnt exist yet.
-            Tag.findOneAndUpdate({
-                name: tags[i]
-            }, {
-                name: tags[i]
-            }, {
-                upsert: true
-            }, function(err, newTag) {
-                if (!newTag) {
-                    console.log("New Tag Discovered");
-                }
-            });
-        }
+                // Put the tag in the overall tags table if it doesnt exist yet.
+                Tag.findOneAndUpdate({
+                    name: tags[i]
+                }, {
+                    name: tags[i]
+                }, {
+                    upsert: true
+                }, function(err, newTag) {
+                    if (!newTag) {
+                        console.log(chalk.white("New Tag Discovered"));
+                    }
+                });
+            }
 
-        subreddit._relatedSubreddits = descriptionParser.getMentionedSubreddits(subredditData);
+            subreddit._relatedSubreddits = descriptionParser.getMentionedSubreddits(subredditData);
 
-        updateSubreddit(subreddit, function(updatedSubreddit) {
-            if (!!updatedSubreddit._relatedSubreddits && updatedSubreddit._relatedSubreddits.length > 0) {
-                propagateRecursive(updatedSubreddit._relatedSubreddits, updatedSubreddit, 1, [updatedSubreddit.url], false, 0, function() {
+            updateSubreddit(subreddit, function(updatedSubreddit) {
+                if (!!updatedSubreddit._relatedSubreddits && updatedSubreddit._relatedSubreddits.length > 0) {
+                    propagateRecursive(updatedSubreddit._relatedSubreddits, updatedSubreddit, 1, [updatedSubreddit.url], false, 0, function() {
+                        console.log(`Finished ${subredditData.url}`);
+                        process.nextTick(callback);
+                    })
+                } else {
                     console.log(`Finished ${subredditData.url}`);
                     process.nextTick(callback);
-                })
-            } else {
-                console.log(`Finished ${subredditData.url}`);
-                process.nextTick(callback);
-            }
+                }
+            });
         });
-    });
+    }
 }
 
 function updateSubreddit(subreddit, callback) {
@@ -150,7 +155,9 @@ function updateSubreddit(subreddit, callback) {
         new: true
     }, function(err, updatedSubreddit) {
         if (!!err) {
-            console.log(err);
+            console.log(chalk.red("Fatal Error in updateSubreddit:\n") + chalk.yellow(err));
+            saveStateSync();
+            process.exit(1);
         }
         callback(updatedSubreddit);
     });
@@ -196,7 +203,7 @@ function propagateRecursive(relatedSubreddits, parentSubreddit, depth, searched,
 }
 
 function propagateSubredditData(subredditURL, parentSubreddit, depth, searched, callback) {
-    // subredditURL is expected to be in the form of '/r/name'
+    // subredditURL is expected to be in the form of '/r/name/'
 
     // Statistical analysis
     if (state.maxDepthReached < depth) {
@@ -206,7 +213,14 @@ function propagateSubredditData(subredditURL, parentSubreddit, depth, searched, 
 
     if (searched.indexOf(null) !== -1) {
         // Pray this never happens.
-        console.log(searched + "aaaaaaaa" + parentSubreddit);
+        console.log(chalk.red(
+            "FATAL ERROR: null found in searched list" +
+            "\nCurrent Subreddit: " + subredditURL +
+            "\nParent Subreddit: " + parentSubreddit +
+            "\ndepth reached: " + depth +
+            "\nSearched List: " + searched
+        ));
+        process.exit(1);
     }
 
     // Handle self referential loops
@@ -226,7 +240,9 @@ function propagateSubredditData(subredditURL, parentSubreddit, depth, searched, 
                 subreddit._relatedSubreddits.push(parentSubreddit.url);
             }
             if (!!err) {
-                console.log("error in propagate: " + err);
+                console.log(chalk.red("Fatal Error in propagateSubredditData:\n") + chalk.yellow(err));
+                saveStateSync();
+                process.exit(1);
             }
 
             // subreddit was either found or created, we want to update tags regardless next.
@@ -288,7 +304,7 @@ function continueSearch(after) {
             }, 1000);
         }
     ).catch((err) => {
-        console.log(err)
+        console.log(chalk.red("Error in continueSearch:\n") + chalk.yellow(err));
     });
 }
 
@@ -307,15 +323,19 @@ function loadStateJSON(callback) {
     });
 }
 
+function saveStateSync() {
+    if (!testingMode) {
+        fileSystem.writeFileSync(statePath, JSON.stringify(state));
+        console.log("    Crawler terminated, current state saved as " + state.after);
+    }
+}
+
 exitHook(function() {
     if (triggerExit) {
         if (logging) {
             console.log("Exit Hook Triggered");
         }
-        if (!testingMode) {
-            fileSystem.writeFileSync(statePath, JSON.stringify(state));
-            console.log("    Crawler terminated, current state saved as " + state.after);
-        }
+        saveStateSync();
         process.exit(0);
     }
 });
