@@ -32,7 +32,7 @@ app.use(function(err, req, res, next) {
     }
 });
 
-// Otherwise, rest of server errors go here and return 500 status
+// Otherwise, rest of server errors bubble out here and return 500 status
 app.use(function(err, req, res, next) {
     console.error(chalk.red(err), chalk.yellow(typeof next));
     console.error(chalk.red(err.stack));

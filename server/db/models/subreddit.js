@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
 
+//  Defines the Subreddit Schema
 const subredditSchema = new Schema({
     url: {
         type: String,
@@ -26,4 +27,6 @@ const subredditSchema = new Schema({
     }]
 });
 
+//  Creates the Subreddit collection in the database
+//  Also exports the Subreddit object for other files to use
 module.exports = mongoose.model('Subreddit', subredditSchema);
