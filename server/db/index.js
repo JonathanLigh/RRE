@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+const Sequelize = require('sequelize');
 const path = require('path');
 const chalk = require('chalk');
 const models = require('./models');
@@ -7,17 +7,14 @@ const DATABASE_URI = ENV_VARIABLES.DATABASE_URI;
 const DATABASE_USER = ENV_VARIABLES.DATABASE_USER;
 const DATABASE_PASSWORD = ENV_VARIABLES.DATABASE_PASSWORD;
 
-// Options for connecting to MongoDB
-const options = {
-    useMongoClient: true
-};
+const db = new Sequelize(DATABASE_URI, {
+  logging: false, // set to console.log to see the raw SQL queries
+  native: true // lets Sequelize know we can use pg-native for ~30% more speed
+})
 
-// Replace mongoose's promise library using bluebird's
-mongoose.Promise = require('bluebird');
-console.log(chalk.yellow('Opening connection to MongoDB', DATABASE_URI));
+var syncedDbPromise = db.sync();
 
-const db = mongoose.connect(DATABASE_URI, options);
-module.exports = db;
-
-const con = mongoose.connection;
-con.on('error', console.error.bind(console, 'mongodb connection error:'));
+syncedDbPromise.then(function () {
+  console.log(chalk.green('Sequelize models synced to PostgreSQL'));
+});
+module.exports = syncedDbPromise;

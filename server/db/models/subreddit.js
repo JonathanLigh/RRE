@@ -1,7 +1,19 @@
-const mongoose = require('mongoose');
-const Schema = mongoose.Schema;
+const db = require('../db');
+const DataTypes = db.Sequelize;
 
 //  Defines the Subreddit Schema
+
+module.exports = db.define('subreddit', {
+  url: {
+    type: DataTypes.STRING,
+    allowNull: false
+  },
+  numSubscribers: {
+    type: DataTypes.INTEGER,
+    required: false
+  }
+});
+
 const subredditSchema = new Schema({
     url: {
         type: String,

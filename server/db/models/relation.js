@@ -1,12 +1,14 @@
+'use strict';
+
 const db = require('../db');
 const DataTypes = db.Sequelize;
 
-//  Defines the Tag Schema
-
-module.exports = db.define('subreddit', {
-  name: {
+module.exports = db.define('relation', {
+  email: {
     type: DataTypes.STRING,
     allowNull: false,
-    unique: true
+    validate: {
+      isEmail: true
+    }
   }
 });
