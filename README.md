@@ -24,17 +24,15 @@ If you&#39;re having any trouble contact either Seva (vvl2@case.edu) or Jon (jkl
 2. Run &quot;npm start&quot; and move to the next section.
 
 **Building the Front End:**
-
-1. Clone the front end project from this repo: [https://github.com/Crazychicken563/RRE-ChromeExtension](https://github.com/Crazychicken563/RRE-ChromeExtension)
-2. Run &quot;npm install&quot;
-3. Run &quot;npm start&quot; to build the project into the &quot;./build: folder
-4. Open Chrome or Chromium. This extension will NOT work in any other browser.
-5. Open the extensions management view through either the chrome settings menu or navigating to &quot;chrome://extensions/&quot; in the search bar.
-6. Install the extension. Because it is not uploaded to the chrome store, you must install it locally from the file system.
+***Note: the front end is now located within the RRE repo***
+1. Run &quot;npm run-script build-dev&quot; to build the project into the &quot;./build: folder
+2. Open Chrome or Chromium. This extension will NOT work in any other browser.
+3. Open the extensions management view through either the chrome settings menu or navigating to &quot;chrome://extensions/&quot; in the search bar.
+4. Install the extension. Because it is not uploaded to the chrome store, you must install it locally from the file system.
   1. Check the **Developer mode** checkbox
   2. Press load unpacked extensions
   3. Select the dev folder inside of RRE-ChromeExtension/build/
-7. Using the extension:
+5. Using the extension:
   1. Navigate your browser to reddit.
   2. The extension will automatically open a first time setup view.
 
