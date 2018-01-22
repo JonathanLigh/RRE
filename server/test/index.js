@@ -20,7 +20,7 @@ describe('Testing the server...', () => {
     const options = {
         useMongoClient: true
     };
-    const TEST_URI = 'mongodb://localhost/RREdbTEST'
+    const TEST_URI = 'mongodb://127.0.0.1/RREdbTEST'
         // Replace mongoose's promise library using bluebird's
     mongoose.Promise = require('bluebird');
     console.log(chalk.yellow('Opening connection to MongoDB', TEST_URI));

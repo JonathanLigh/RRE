@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>RRE Settings</title>
+        <link rel="stylesheet" href="../css/styles.css">
+    </head>
+    <body>
+        <div class="settings">
+            <div class="header">Max Recommendations: </div>
+            <input type="textbox" id="recommendationLimit">
+            <div id="recommendation-limit-status"></div>
+            <br>
+            <div class="header">Tags:</div>
+            <select id="tagsInput">
+                <option value="" disabled selected>Add a tag</option>
+            </select>
+            <div class="firstTimeSetupSlider" id="first-time-setup-tags">
+                <input type="range" min="1" max="20" value="5" id="first-time-setup-tags-range">
+            </div>
+            <div id="tags-status"></div>
+            <div id="tags"></div>
+            <br>
+            <div class="header">Blacklist:</div>
+            <input type="textbox" id="blacklistInput">
+            <div id="blacklist-status"></div>
+            <div id="blacklist"></div>
+            <br>
+        </div>
+        <script src="../js/options.js"></script>
+    </body>
+</html>

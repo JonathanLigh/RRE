@@ -12,6 +12,8 @@
     },
     "main": "server/main.js",
     "scripts": {
+        "build-prod": "mkdir -p ./build/prod && webpack --config ./webpack/webpack.config.prod.js",
+        "build-dev": "mkdir -p ./build/dev && webpack --config ./webpack/webpack.config.dev.js",
         "test": "nyc mocha ./server/test",
         "start": "node ./server/main"
     },
@@ -49,15 +51,45 @@
         "path": "^0.12.7",
         "progress": "^2.0.0",
         "querystring": "^0.2.0",
-        "volleyball": "^1.4.1"
+        "volleyball": "^1.4.1",
+        "chromedriver": "^2.33.2",
+        "jquery": "3.1.1",
+        "jsdom": "^11.5.1",
+        "lodash": "4.17.4",
+        "selenium-webdriver": "^3.6.0"
     },
     "devDependencies": {
         "chai": "^4.0.2",
         "chai-spies": "^0.7.1",
         "chai-string": "^1.4.0",
-        "mocha": "^3.4.2",
+        "mocha": "1.20.0",
         "nodemon": "^1.11.0",
-        "supertest": "^3.0.0"
+        "supertest": "^3.0.0",
+        "babel-core": "6.18.2",
+        "babel-eslint": "7.1.0",
+        "babel-loader": "6.2.7",
+        "babel-plugin-module-resolver": "2.3.0",
+        "babel-plugin-transform-runtime": "6.15.0",
+        "babel-preset-es2015": "6.18.0",
+        "babel-preset-stage-2": "6.18.0",
+        "copy-webpack-plugin": "4.0.1",
+        "cross-env": "^5.1.1",
+        "crx-webpack-plugin": "0.1.5",
+        "css-loader": "0.26.0",
+        "eslint": "3.14.0",
+        "eslint-config-airbnb": "14.0.0",
+        "eslint-import-resolver-babel-module": "2.2.1",
+        "eslint-plugin-import": "2.2.0",
+        "eventemitter2": "0.4.14",
+        "mocha-jsdom": "^1.1.0",
+        "mocha-webpack": "0.7.0",
+        "nyc": "^11.3.0",
+        "sinon": "1.12.2",
+        "sinon-chrome": "^2.2.1",
+        "webpack": "2.2.1",
+        "webpack-dev-server": "1.16.2",
+        "webpack-node-externals": "1.5.4",
+        "webpack-version-file-plugin": "0.2.2"
     },
     "browser": {
         "request": "xhr"
