@@ -54,9 +54,12 @@
         "mongoose": "^4.11.12",
         "nyc": "^11.3.0",
         "path": "^0.12.7",
+        "pg": "^7.4.1",
+        "pg-native": "^2.2.0",
         "progress": "^2.0.0",
         "querystring": "^0.2.0",
         "selenium-webdriver": "^3.6.0",
+        "sequelize": "^4.32.1",
         "volleyball": "^1.4.1"
     },
     "devDependencies": {
