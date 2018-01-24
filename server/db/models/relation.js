@@ -3,12 +3,15 @@
 const db = require('../db');
 const DataTypes = db.Sequelize;
 
+// possible concern:
+// no easy way to update dominated relation distances
 module.exports = db.define('relation', {
-  email: {
+  relation: {
     type: DataTypes.STRING,
     allowNull: false,
-    validate: {
-      isEmail: true
-    }
+  },
+  distance: {
+    type: DataTypes.INTEGER,
+    allowNull: false
   }
 });
