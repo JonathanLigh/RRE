@@ -3,7 +3,7 @@ const DataTypes = db.Sequelize;
 
 //  Defines the Tag Schema
 
-module.exports = db.define('subreddit', {
+module.exports = db.define('tag', {
   name: {
     type: DataTypes.STRING,
     allowNull: false,
