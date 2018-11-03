@@ -1,12 +1,25 @@
-const https = require('https');
-const fileSystem = require('fs');
+'use strict'
+require('dotenv').config()
+const fs = require("fs")
+const https = require('follow-redirects').https;
 const exitHook = require('exit-hook');
 const chalk = require('chalk');
 const regex = require('./regexModule');
 const descriptionParser = require('./descriptionParser');
+const languageFilter = require('./languageFilter');
 const models = require('../db/models');
+const reddit = require('../redditAPI').CrawlerAPI;
 const Subreddit = models.Subreddit;
 const Tag = models.Tag;
+const Relation = models.Relation;
+const TagRelation = models.TagRelation
+const Hashset = require('hashset');
+const Promise = require("bluebird");
+const Op = require("sequelize").Op;
+const htmlToJSON = require('html-to-json');
+//  This is the message that appears as the reponse for any NSFW page
+const nsfwMessage = 'You must be at least eighteen years old to view this content. Are you over eighteen and willing to see adult content?';
+
 
 var batchSize = 1;
 
@@ -22,49 +35,119 @@ var state = {
     maxDepthReached: 0,
     maxDepthSubreddit: ""
 };
+// our trainable wordfilter
+var wordFilter = [];
 
+// this hashset will contain recently viseted subreddits within that cralwer scope
+var visitedTable = new Hashset();
+
+function normalizeURL(url) {
+    return url.replace('/r/','').replace('/','');
+}
+
+function get_json(url, callback) {
+    console.log(`Querying ${url}`);
+    https.get(url, function(res) {
+        var body = '';
+        res.on('data', function(chunk) {
+            body += chunk;
+        });
+
+        res.on('end', function() {
+            // console.log(chalk.magenta(body));
+            var response = JSON.parse(body);
+            callback(response);
+        });
+    }).on('error', function(err) {
+        console.log(chalk.red(err));
+    })
+}
+
+// much like get_json, but requires more processing
+function getJSONFromSubreddit(url, callback) {
+
+    console.log('Querying ' + subredditURLBuilder(url));
+    //  must find a work around until reddit approves the personal use script for acess to their api
+    // reddit.getSubreddit(normalizeURL(url)).fetch().then(console.log);
+
+    https.get(subredditURLBuilder(url), function(res) {
+        var body = '';
+        var over18 = false;
+        res.on('data', function(chunk) {
+            body += chunk;
+        });
+
+        res.on('end', function() {
+            //  we could also try to find hrefs to other sights on the page
+            htmlToJSON.parse(body, {
+                url: url,
+                over18: function($doc) {
+                    if ($doc.find('.content').find('.interstitial').find('.interstitial-message md-container').find('.md').text() != "") {
+                        over18 = true;
+                    }
+                    return over18;
+                },
+                content: function($doc) {
+                    return $doc.find('#siteTable').find('.title').text();
+                },
+                description: function($doc) {
+                    return $doc.find('.side').find('.md').text();
+                },
+                subscribers: function($doc) {
+                    if (over18) {
+                        return 0;
+                    } else {
+                        return parseInt($doc.find('.subscribers').find('.number').text().replace(',', ''));
+                    }
+                }
+            }, function (err, result) {
+                // console.log(result);
+                // console.log(chalk.magenta("" + result.description));
+                // console.log(chalk.blue("" + result.subscribers));
+                // console.log(chalk.yellow(descriptionParser.getMentionedSubreddits(result)));
+
+            }).done(function (result) {
+                callback(result);
+            });
+        });
+    }).on('error', function(err) {
+        console.log(chalk.red(err));
+    })
+}
+
+function getSubredditMetaData(url, visitedTable) {
+    return new Promise((resolve, reject) => {
+        getJSONFromSubreddit(url, function(res) {
+            parseRecursiveSingular(res, visitedTable, function() {
+                resolve(url);
+            });
+        })
+    })
+};
+
+//  The top level entry point into the general crawling of subreddits
 function getReddits(after) {
     return new Promise((resolve, reject) => {
-        function get_json(url, callback) {
-            console.log(`Querying ${url}`);
-            https.get(url, function(res) {
-                var body = '';
-                res.on('data', function(chunk) {
-                    body += chunk;
-                });
-
-                res.on('end', function() {
-                    var response = JSON.parse(body);
-                    callback(response);
-                });
-
-                res.on('error', function(error) {
-                    reject(error);
-                });
-            });
-        }
-
         get_json(buildURL(after, batchSize), function(response) {
-            parseRecursive(response.data.children, 0, function() {
+            parseRecursive(response.data.children, visitedTable, () => {
                 resolve(response.data.after);
-            });
+            })
         });
     });
 }
 
-function parseRecursive(subreddits, currIndex, resolveCallback) {
-    console.log("Parsing Subreddit " + (currIndex + 1) + "/" + batchSize);
-    parseSubreddit(subreddits[currIndex].data, function() {
-        currIndex++;
-        if (currIndex >= subreddits.length) {
-            resolveCallback();
-        } else {
-            parseRecursive(subreddits, currIndex, resolveCallback);
-        }
-    });
+function subredditURLBuilder(url) {
+    // our related subreddit parser has a tendence to pick out the subreddit url and the word 'use' together
+    // input cleaning
+    if (url.substr(url.length - 4) === 'use/' && url.substr(url.length - 6) !== 'house/') {
+        console.log(chalk.red('This url has the substring use/ in it: ')  + chalk.green(url));
+        url = url.substr(0, url.length - 4) + '/'
+    }
+    return 'https://www.reddit.com' + url;
 }
 
-function buildURL(after) {
+// subreddit querying url builder
+function buildURL(after, batchSize) {
     var url = "https://www.reddit.com/reddits.json";
     if (!!batchSize) {
         url += "?limit=" + batchSize;
@@ -75,221 +158,259 @@ function buildURL(after) {
     return url;
 }
 
-function parseSubreddit(subredditData, callback) {
+function parseRecursive(subreddits, visitedTable, resolveCallback) {
+    addSubredditsToVisted(subreddits, visitedTable);
+    // constantly creating new threads for this, need to prevent that
+    console.log("Parsing " + subreddits.length + " Subreddits");
+    subreddits.forEach(subreddit => {
+        console.log("Parsing this subreddit " + subreddit.data.url);
+        parseSubreddit(subreddit.data, visitedTable);
+    });
+    // resolves back to top level when done with this batch of subreddits
+    resolveCallback();
+}
+
+function parseRecursiveSingular(subreddit, visitedTable, resolveCallback) {
+    addSubredditToVisted(subreddit, visitedTable);
+    console.log("Parsing this subreddit" + subreddit.url);
+    parseSubreddit(subreddit, visitedTable);
+
+    resolveCallback();
+}
+
+//  preprocesses the subreddits to visit, adds all subreddits to visited table
+function addSubredditsToVisted(subreddits, visitedTable) {
+    subreddits.forEach(subreddit => {
+        addSubredditToVisted(subreddit.data, visitedTable);
+    })
+}
+
+function addSubredditToVisted(subredditData, visitedTable) {
+    if (subredditData.url) {
+        console.log(chalk.blue("Adding " + subredditData.url + " to visited table."))
+        subredditData.url = subredditData.url.toLowerCase();
+        visitedTable.add(subredditData.url);
+    } else {
+        console.log(chalk.red("attempted to add a subreddit without data to the list of visited"));
+    }
+}
+
+function parseSubreddit(subredditData, visitedTable) {
     if (!subredditData) {
         console.log(chalk.red("parseSubreddit called with no data"));
-        process.nextTick(callback);
     } else {
-        subredditData.url = subredditData.url.toLowerCase();
-        console.log("Found " + subredditData.url);
-        Subreddit.findOneAndUpdate({
-            url: subredditData.url
-        }, {}, {
-            new: true,
-            upsert: true,
-            setDefaultsOnInsert: true
-        }, function(err, subreddit) {
-            if (!!err) {
+        if (!subredditData.subscribers) {
+            subredditData.subscribers = 0;
+        }
+        // for now we should not explore NSFW subreddits as we dont have clean/straightforward access to their pages to scrape info from
+        // also subreddits without content or descriptions are not real subreddits
+        // also subreddits without content or descriptions coule be private subreddits and should not be parsed or classified
+        if (!subredditData.over18 && subredditData.description !== '' && subredditData.content !== '') {
+
+            subredditData.url = subredditData.url.toLowerCase();
+            console.log("Found " + subredditData.url);
+
+            return Subreddit.findOne({
+                where: {
+                    url: {
+                        [Op.eq]: subredditData.url
+                    }
+                }
+            }).then(res => {
+                if (res) {
+                    return res.update({
+                        isNSFW: subredditData.over18,
+                        numSubscribers: subredditData.subscribers
+                    })
+                } else {
+                    return Subreddit.create({
+                        url: subredditData.url,
+                        isNSFW: subredditData.over18,
+                        numSubscribers: subredditData.subscribers
+                    })
+                }
+            }).then(subreddit => {
+
+                const csvMatcher = /\b[\w\s]+\b/gi;
+                if (subredditData.audience_target != undefined) {
+                    var tags = regex.getListOfMatches(subredditData.audience_target, csvMatcher);
+                    // console.log(chalk.yellow("These are all the tags from normal audience_target parsing: " + tags));
+                } else {
+                    // need to find a way to parse subredditData.content without extracting words + numbers as keywords
+                    // var tags = regex.getListOfMatches(subredditData.description + '\n' + subredditData.content, csvMatcher);
+                    //  subredditData.content is also good, but tends to pull many tags
+                    var tags = languageFilter.getWordsFromSample(subredditData.description);
+                }
+
+                wordFilter = languageFilter.teachFilter(tags, wordFilter);
+                if (subredditData.description !== undefined && subredditData.description !== '') {
+                    var tags = languageFilter.filterWords(tags,
+                                                      languageFilter.generateFilterList(wordFilter, 30)); // 3 is good
+                    // console.log(chalk.yellow("These are all the tags in " + subreddit.url + " from languageFilter: " + tags));
+                    tags = new Set(tags);
+                    console.log("Total compression of parsed tags in " + subreddit.url + " : " + chalk.green(tags.size) + "/" + chalk.green(subredditData.description.split(' ').length)+ " = " + chalk.blue(tags.size/subredditData.description.split(' ').length * 100) + '%');
+                }
+
+                tags.forEach(tag => {
+                    if (tag.substr(tag.length - 3) === 'use') {
+                        tag = tag.substr(0, tag.length - 3)
+                    }
+                    return Tag.findCreateFind({
+                        where: {
+                            // The tag name is also unique
+                            name: {
+                                [Op.eq]: tag
+                            }
+                        },
+                        defaults: {
+                            name: tag
+                        }
+                    }).then(tag => {
+
+                        TagRelation.findCreateFind({
+                            where: {
+                                distance:  {
+                                    [Op.lte]: 0 // placeholder distance, will look more like where distance: less than value found possibly from depth
+                                },
+                                subredditId: {
+                                    [Op.eq]: subreddit.id
+                                },
+                                tagId: {
+                                    [Op.eq]: tag[0].id
+                                }
+                            },
+                            defaults: {
+                                distance: 0, // would default to actual value of distance
+                                subredditId: subreddit.id,
+                                tagId: tag[0].id
+                            }
+                        })
+                    }).catch(err => {
+                        console.log(chalk.red("Fatal Error in parseSubreddit:\n") + chalk.yellow(err));
+                        saveStateSync();
+                        process.exit(1);
+                    })
+                })
+
+
+                // Now for the related subreddits
+                var relatedSubreddits = descriptionParser.getMentionedSubreddits(subredditData);
+                if (relatedSubreddits.length > 0) {
+
+                    relatedSubreddits.forEach(related => {
+
+                        if (related.substr(related.length - 4) === 'use/' && related.substr(related.length - 6) !== 'house/') {
+                            // console.log('This tag has the substring use in it: ' + chalk.yellow(tags[i]))
+                            related = related.substr(0, related.length - 4)
+                        }
+
+                        return Subreddit.findCreateFind({
+                            where: {
+                                //  a subreddit's url is a unique identifier, therefore we can assume
+                                url: {
+                                    [Op.eq]: related
+                                }
+                            },
+                            defaults: {
+                                url: related
+                            }
+                        }).then(relatedSubreddit => {
+                            return Relation.findCreateFind({
+                                where: {
+                                    relatedSubredditId: {
+                                        [Op.eq]: relatedSubreddit[0].id
+                                    },
+                                    subredditId: {
+                                        [Op.eq]: subreddit.id
+                                    }
+                                },
+                                defaults: {
+                                    distance: 0,
+                                    subredditId: subreddit.id,
+                                    relatedSubredditId: relatedSubreddit[0].id
+                                }
+                            })
+                        }).then(relation => {
+                            // add the subreddits related to that related subreddit as relations
+                            // to the head subreddit
+                            return Relation.findAll({
+                                where: {
+                                    subredditId: {
+                                        [Op.eq]: relation.relatedSubredditId
+                                    },
+                                    relatedSubredditId: {
+                                        [Op.ne]: subreddit.id
+                                    },
+                                    distance: {
+                                        [Op.lte]: 3 // 3 is a good max value for distance (from experience last semester) relax this restriction anymore and we get this wierd convergance were the most controversial subreddits (hate subreddits too) are the most connected
+                                    }
+                                }
+                            })
+                        }).then(relations => {
+                            if (relations) {
+                                relations.forEach(r => {
+                                    // create a relation for each related subreddit of that related subreddit
+                                    // basically propagate relations
+                                    console.log(chalk.yellow("this is what the relation looks like " + r))
+                                    Relation.findCreateFind({
+                                        where: {
+                                            subredditId: {
+                                                [Op.eq]: subreddit.id
+                                            },
+                                            relatedSubredditId: {
+                                                [Op.eq]: r.relatedSubredditId
+                                            },
+                                            distance: {
+                                                [Op.lte]: r.distance
+                                            }
+                                        },
+                                        defaults: {
+                                            distance: r.distance + 1,
+                                            subredditId: subreddit.id,
+                                            relatedSubredditId: r.relatedSubredditId
+                                        }
+                                    })
+                                })
+                            }
+                        }).catch(err => {
+                            console.log(chalk.red("Fatal Error in parseSubreddit:\n") + chalk.yellow(err));
+                            saveStateSync();
+                            process.exit(1);
+                        })
+                    })
+                }
+            }).then(() => {
+
+                var relatedSubreddits = descriptionParser.getMentionedSubreddits(subredditData);
+
+                if (relatedSubreddits.length > 0) {
+                    relatedSubreddits.forEach(reddit => {
+                        if(!visitedTable.contains(reddit)) {
+                            console.log(chalk.yellow("url: " + subredditURLBuilder(reddit)));
+                            getSubredditMetaData(reddit, visitedTable).then(res => {
+                                console.log(chalk.green('Finshed: ' + res));
+                            }).catch(err => {
+                                console.log(chalk.red("Fatal Error in parseSubreddit:\n") + chalk.yellow(err));
+                                saveStateSync();
+                                process.exit(1);
+                            })
+                        }
+                    })
+                }
+
+                console.log(`Finished ${subredditData.url}`);
+
+            }).then(() => {
+
+            }).catch(err => {
                 console.log(chalk.red("Fatal Error in parseSubreddit:\n") + chalk.yellow(err));
                 saveStateSync();
                 process.exit(1);
-            }
-
-            subreddit.numSubscribers = subredditData.subscribers;
-
-            const csvMatcher = /\b[\w\s]+\b/gi;
-            var tags = regex.getListOfMatches(subredditData.audience_target, csvMatcher);
-            var i;
-            for (i in tags) {
-                updateTag(subreddit, {
-                    name: tags[i],
-                    distance: 0
-                }, 0);
-
-                // Put the tag in the overall tags table if it doesnt exist yet.
-                Tag.findOneAndUpdate({
-                    name: tags[i]
-                }, {
-                    name: tags[i]
-                }, {
-                    upsert: true
-                }, function(err, newTag) {
-                    if (!newTag) {
-                        console.log(chalk.white("New Tag Discovered"));
-                    }
-                });
-            }
-
-            subreddit._relatedSubreddits = descriptionParser.getMentionedSubreddits(subredditData);
-
-            updateSubreddit(subreddit, function(updatedSubreddit) {
-                if (!!updatedSubreddit._relatedSubreddits && updatedSubreddit._relatedSubreddits.length > 0) {
-                    propagateRecursive(updatedSubreddit._relatedSubreddits, updatedSubreddit, 1, [updatedSubreddit.url], false, 0, function() {
-                        console.log(`Finished ${subredditData.url}`);
-                        process.nextTick(callback);
-                    })
-                } else {
-                    console.log(`Finished ${subredditData.url}`);
-                    process.nextTick(callback);
-                }
-            });
-        });
-    }
-}
-
-function updateSubreddit(subreddit, callback) {
-    updateData = {};
-    if (!!subreddit.numSubscribers) {
-        updateData.numSubscribers = subreddit.numSubscribers;
-    }
-    if (!!subreddit._relatedSubreddits) {
-        updateData._relatedSubreddits = subreddit._relatedSubreddits;
-    }
-    if (!!subreddit.tags) {
-        updateData.tags = subreddit.tags;
-    }
-
-    Subreddit.findOneAndUpdate({
-        url: subreddit.url
-    }, updateData, {
-        new: true
-    }, function(err, updatedSubreddit) {
-        if (!!err) {
-            console.log(chalk.red("Fatal Error in updateSubreddit:\n") + chalk.yellow(err));
-            saveStateSync();
-            process.exit(1);
-        }
-        callback(updatedSubreddit);
-    });
-}
-
-function propagateRecursive(relatedSubreddits, parentSubreddit, depth, searched, backtrack, currIndex, resolveCallback) {
-    var loggingIndent = "  ";
-    if (logging || recusiveLogging) {
-        var count;
-        for (count = 0; count < depth; count++) {
-            loggingIndent += "  ";
-        }
-    }
-    var subredditURL = relatedSubreddits[currIndex];
-    if (backtrack) {
-        var searchedIndex = searched.indexOf(subredditURL);
-        if (searchedIndex > -1) {
-            searched.splice(searchedIndex, 1);
-            if (logging) {
-                console.log(loggingIndent + "Need to scan " + subredditURL + " again in case changes relate.");
-            }
-        }
-        if (logging || recusiveLogging) {
-            console.log(
-                loggingIndent + "Updating (" + (currIndex + 1) + "/" + relatedSubreddits.length + "): " + parentSubreddit.url + " => " + subredditURL
-            );
-        }
-    } else {
-        console.log(loggingIndent + "Updating (" + (currIndex + 1) + "/" + relatedSubreddits.length + "): " + subredditURL);
-    }
-
-    propagateSubredditData(subredditURL, parentSubreddit, depth, searched, function() {
-        if (logging) {
-            console.log(loggingIndent + "Finished: " + subredditURL);
-        }
-        currIndex++;
-        if (currIndex >= relatedSubreddits.length) {
-            resolveCallback();
+            })
         } else {
-            propagateRecursive(relatedSubreddits, parentSubreddit, depth, searched, backtrack, currIndex, resolveCallback);
-        }
-    });
-}
-
-function propagateSubredditData(subredditURL, parentSubreddit, depth, searched, callback) {
-    // subredditURL is expected to be in the form of '/r/name/'
-
-    // Statistical analysis
-    if (state.maxDepthReached < depth) {
-        state.maxDepthReached = depth;
-        state.maxDepthSubreddit = subredditURL;
-    }
-
-    if (searched.indexOf(null) !== -1) {
-        // Pray this never happens.
-        console.log(chalk.red(
-            "FATAL ERROR: null found in searched list" +
-            "\nCurrent Subreddit: " + subredditURL +
-            "\nParent Subreddit: " + parentSubreddit +
-            "\ndepth reached: " + depth +
-            "\nSearched List: " + searched
-        ));
-        process.exit(1);
-    }
-
-    // Handle self referential loops
-    if (searched.indexOf(subredditURL) !== -1) {
-        if (logging) {
-            console.log("Already Searched: " + subredditURL);
-        }
-        callback();
-    } else {
-        Subreddit.findOneAndUpdate({
-            url: subredditURL
-        }, {}, {
-            new: true,
-            upsert: true
-        }, function(err, subreddit) {
-            if (subreddit._relatedSubreddits.indexOf(parentSubreddit.url) === -1) {
-                subreddit._relatedSubreddits.push(parentSubreddit.url);
-            }
-            if (!!err) {
-                console.log(chalk.red("Fatal Error in propagateSubredditData:\n") + chalk.yellow(err));
-                saveStateSync();
-                process.exit(1);
-            }
-
-            // subreddit was either found or created, we want to update tags regardless next.
-            var updatedTags = false;
-            var i;
-            for (i in parentSubreddit.tags) {
-                updatedTags = updatedTags || updateTag(subreddit, parentSubreddit.tags[i], depth);
-            }
-            if (updatedTags) {
-                // If the tags were modified we should update the subreddit
-                updateSubreddit(subreddit, function(updatedSubreddit) {
-                    if (!!updatedSubreddit._relatedSubreddits && updatedSubreddit._relatedSubreddits.length > 0) {
-                        propagateRecursive(updatedSubreddit._relatedSubreddits, updatedSubreddit, depth + 1, searched, true, 0, function() {
-                            callback();
-                        });
-                    } else {
-                        callback();
-                    }
-                });
-            } else {
-                searched.push(subredditURL);
-                callback();
-            }
-        });
-    }
-}
-
-// Tags are {name:"tagName", distance:X}
-function updateTag(subreddit, newTag, depth) {
-    var i;
-    for (i in subreddit.tags) {
-        if (subreddit.tags[i].name === newTag.name) {
-            if (subreddit.tags[i].distance > (newTag.distance + depth)) {
-                //console.log("Tag had better distance: " + newTag + "[" + subreddit.tags[i].distance + " => " + (newTag.distance + depth) + "]");
-                subreddit.tags[i].distance = (newTag.distance + depth);
-                return true;
-            }
-            //console.log("Tag had worse distance: " + newTag + "[" + subreddit.tags[i].distance + " < " + (newTag.distance + depth) + "]");
-            return false;
+            // do nothing the subreddit data is corrupted/incomplete
         }
     }
-    //console.log("Tag not found: " + newTag);
-    subreddit.tags.push({
-        name: newTag.name,
-        distance: newTag.distance + depth
-    });
-    return true;
 }
 
 function continueSearch(after) {
@@ -301,7 +422,7 @@ function continueSearch(after) {
             state.after = after;
             setTimeout(function() {
                 continueSearch(after);
-            }, 1000);
+            }, 10000);
         }
     ).catch((err) => {
         console.log(chalk.red("Error in continueSearch:\n") + chalk.yellow(err));
@@ -309,7 +430,7 @@ function continueSearch(after) {
 }
 
 function loadStateJSON(callback) {
-    fileSystem.readFile(statePath, (err, data) => {
+    fs.readFile(statePath, (err, data) => {
         if (err) {
             console.log("state.json file not initialized");
         } else {
@@ -325,7 +446,7 @@ function loadStateJSON(callback) {
 
 function saveStateSync() {
     if (!testingMode) {
-        fileSystem.writeFileSync(statePath, JSON.stringify(state));
+        fs.writeFileSync(statePath, JSON.stringify(state));
         console.log("    Crawler terminated, current state saved as " + state.after);
     }
 }
@@ -351,7 +472,7 @@ module.exports = {
             size = 1;
         }
         batchSize = size;
-        triggerExit = true;
+        triggerExit = false; // change to true for deployment runtime
         loadStateJSON(function(after) {
             console.log("Starting search from " + state.after);
             continueSearch(after);
@@ -371,22 +492,7 @@ module.exports = {
     _parseRecursive: function(subredditsData, callback) {
         testingMode = true;
         logging = true;
-        return parseRecursive(subredditsData, 0, callback);
-    },
-    _updateSubreddit: function(subredditData, callback) {
-        testingMode = true;
-        logging = true;
-        return updateSubreddit(subredditData, callback);
-    },
-    _propagateSubredditData: function(subredditURL, parentSubreddit, depth, searched) {
-        testingMode = true;
-        logging = true;
-        return propagateSubredditData(subredditURL, parentSubreddit, depth, searched);
-    },
-    _updateTag: function(subredditData, newTag, depth) {
-        testingMode = true;
-        logging = true;
-        return updateTag(subredditData, newTag, depth);
+        return parseRecursive(subredditsData, [], callback);
     }
 };
 

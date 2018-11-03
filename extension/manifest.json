@@ -28,6 +28,6 @@
         "chrome_style": false
     },
 
-    "web_accessible_resources": ["js/*", "html/*", "css/*", "img/*"],
+    "web_accessible_resources": ["js/*", "html/*", "css/*", "img/*", "sidebar/dist/*"],
     "content_security_policy": "script-src 'self'; object-src 'self'"
 }

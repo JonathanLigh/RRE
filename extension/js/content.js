@@ -33,6 +33,7 @@ if (sideBarDiv) {
     var loadingGifURL = chrome.runtime.getURL('./img/loading.gif');
     var optionshtml = chrome.runtime.getURL('./html/options.html');
 
+
     RREContainer.innerHTML =
         `<div>
             <div>
@@ -52,6 +53,12 @@ if (sideBarDiv) {
             </div>
         </div>`;
 
+
+    var iframe = document.createElement('iframe');
+    // iframe.contentDocument.write(getFrameHTML('../sidebar/dist/index.html'))
+    iframe = chrome.runtime.getURL('../sidebar/dist/index.html');
+    RREContainer.innerHTML = iframe;
+
     // Inject into reddit sidebar
     sideBarDiv.insertBefore(RREContainer, sideBarDiv.childNodes[1]);
 
@@ -62,6 +69,13 @@ if (sideBarDiv) {
     initializeEventListeners();
 }
 
+// function getFrameHTML (htmlFileName) {
+//     var xmlhttp = new XMLHttpRequest();
+//     xmlhttp.open("GET", chrome.extension.getURL(htmlFileName), false);
+//     xmlhttp.send();
+
+//     return xmlhttp.responseText;
+// }
 // ---------- Event Listeners ---------- //
 
 function initializeEventListeners() {

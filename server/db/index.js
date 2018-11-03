@@ -1,23 +1,13 @@
-const mongoose = require('mongoose');
+const Sequelize = require('sequelize');
 const path = require('path');
 const chalk = require('chalk');
 const models = require('./models');
-const ENV_VARIABLES = require(path.join(__dirname, '../env'));
-const DATABASE_URI = ENV_VARIABLES.DATABASE_URI;
-const DATABASE_USER = ENV_VARIABLES.DATABASE_USER;
-const DATABASE_PASSWORD = ENV_VARIABLES.DATABASE_PASSWORD;
+const db = require('./db');
 
-// Options for connecting to MongoDB
-const options = {
-    useMongoClient: true
-};
 
-// Replace mongoose's promise library using bluebird's
-mongoose.Promise = require('bluebird');
-console.log(chalk.yellow('Opening connection to MongoDB', DATABASE_URI));
+var syncedDbPromise = db.sync();
 
-const db = mongoose.connect(DATABASE_URI, options);
-module.exports = db;
-
-const con = mongoose.connection;
-con.on('error', console.error.bind(console, 'mongodb connection error:'));
+syncedDbPromise.then(function () {
+  console.log(chalk.green('Sequelize models synced to PostgreSQL'));
+});
+module.exports = syncedDbPromise;

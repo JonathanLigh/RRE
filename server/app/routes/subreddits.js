@@ -1,8 +1,13 @@
 const express = require('express');
+const Sequelize = require('sequelize');
+const Op = Sequelize.Op;
 const router = express.Router();
 const models = require('../../db/models');
 const async = require('async');
 const Subreddit = models.Subreddit;
+const Relation = models.Relation;
+const Tag = models.Tag;
+const TagRelation = models.TagRelation;
 const chalk = require('chalk');
 const Heap = require('heap');
 const ProgressBar = require('console-progress');
@@ -14,6 +19,46 @@ router.use(function(req, res, next) {
     next();
 });
 
+router.post('/search', function(req, res, next) {
+    // search reddits, then search reddits through tags and tagrelations
+    // response list
+    var list = [];
+    if(!!req.body.query) {
+        var query = req.body.query.split(" ");
+        Subreddit.findAll({
+            limit: 100,
+            where: {
+                url: {
+                    [Op.in]: query
+                }
+            },
+            Order: Sequelize.col('numSubscribers')
+        }).then(results => {
+            // the results of the first query become the list
+            list = results;
+            return Subreddit.findAll({
+                limit: 100,
+                include: [{
+                    model: Tag,
+                    where: {
+                        name: {
+                            [Op.in]: query
+                        }
+                    }
+                }],
+                Order: Sequelize.col('numSubscribers')
+            })
+        }).then(results => {
+            results.forEach(subreddit => {
+                list.push(subreddit);
+            });
+            res.status(200).json(list);
+        }).catch(next);
+    } else {
+        res.status(422).send('Unprocessable Entity')
+    }
+})
+
 /*
 returns all unique tags of provided subreddits that are within the provided distance
   The req body will have:
@@ -22,36 +67,25 @@ returns all unique tags of provided subreddits that are within the provided dist
   The res body will have:
     a map of tags and their distances
 */
-router.post('/getTagsForSubreddits', function(req, res, next) {
-    if (!!req.body.subreddits && !!req.body.maxDistance) {
-        Subreddit.find({
-            url: {
-                $in: req.body.subreddits
-            }
-        }, function(err, subreddits) {
-            var tags = {};
-            var index;
-            for (index in subreddits) {
-                var currTags = subreddits[index].tags;
-                var i;
-                for (i in currTags) {
-                    var tag = currTags[i];
-                    if (!tags[tag.name]) {
-                        if (tag.distance <= req.body.maxDistance) {
-                            tags[tag.name] = tag.distance;
-                        }
-                    } else {
-                        if (tags[tag.name].distance > tag.distance) {
-                            tags[tag.name] = tag.distance;
-                        }
+
+router.post('/getTagsFromSubscribedSubreddits', function(req, res, next) {
+    if (!!req.body.subscribed && !!req.body.maxDistance) {
+
+        Tag.findAll({
+            limit: 200,
+            include: [{
+                model: Subreddit,
+                where: {
+                    url: {
+                        [Op.in]: req.body.subscribed
                     }
                 }
-            }
-            res.status(200);
-            res.json(tags);
+            }]
+        }).then(response => {
+            res.status(200).json(response);
         }).catch(next);
     } else {
-        res.status(422).send('Unprocessable Entity')
+        res.status(422).send('Unprocessable Entity');
     }
 });
 
@@ -65,77 +99,99 @@ returns the top (n) recommended subreddits
   The res body will have:
     a list of the top (n) recommended, in order of relevancy
 */
+
 router.post('/recommended', function(req, res, next) {
-    console.log("Searching For " + JSON.stringify(req.body));
+    if (!!req.body.subscribed && !!req.body.maxRecommendations && !!req.body.tags && !!req.body.blacklist) {
 
-    var heap = new Heap(function(subreddit1, subreddit2) {
-        // Inverse the score so that elements in the heap with the "highest score" are the worst match.
+        // define heap with which we rank
+        var heap = new Heap(function(subreddit1, subreddit2) {
 
-        var subreddit1Tags = !subreddit1.tags ? [] : routeUtils.getMatchingTags(subreddit1.tags, req.body.tags);
-        var subreddit2Tags = !subreddit2.tags ? [] : routeUtils.getMatchingTags(subreddit2.tags, req.body.tags);
-
-        var integralScore = -1 * routeUtils.calculateIntegralScore(subreddit1Tags, subreddit2Tags);
-        if (integralScore !== 0) {
-            //console.log("Result: " + tagDifference);
-            return integralScore;
-        }
-
-        // Popularity Difference
-        return subreddit1.total_subscribers - subreddit2.total_subscribers;
-    });
-
-    if (!!req.body.tags && !!req.body.subscribed && !!req.body.blacklisted && !!req.body.maxRecommendations) {
-        var blacklist = [];
-        for (i in req.body.blacklisted) {
-            blacklist.push(req.body.blacklisted[i].subreddit);
-        }
-
-        blacklist = req.body.subscribed.concat(blacklist);
-
-        Subreddit.find({
-            url: {
-                $nin: blacklist
+            if (subreddit1.relatedSubreddits !== undefined && subreddit2.relatedSubreddits !== undefined) {
+                // the more related subreddits to this suggestion, the better
+                return subreddit1.relatedSubreddits.length - subreddit2.relatedSubreddits.length;
+            } else if (subreddit1.relatedSubreddits !== undefined && subreddit2.relatedSubreddits === undefined) {
+                return 1;
+            } else if (subreddit1.relatedSubreddits === undefined && subreddit2.relatedSubreddits !== undefined){
+                return -1;
+            } else {
+                // more related tags the better
+                return subreddit1.tags.length - subreddit2.tags.length;
             }
-        }, function(err, parsedSubreddits) {
-            //console.log(err);
-            var progressBarScale = 100;
-            var bar = ProgressBar.getNew('[:bar] :eta Seconds Remaining', {
-                complete: '=',
-                incomplete: ' ',
-                width: 40,
-                total: parsedSubreddits.length / progressBarScale
+        });
+
+        // returns all subreddits related to the subscribed subreddits
+        var subreddits = [];
+        return Subreddit.findAll({
+            where: {
+                url: {
+                    [Op.and]: {
+                        [Op.notIn]: req.body.subscribed,
+                        [Op.notIn]: req.body.blacklist
+                    }
+                }
+            },
+            include: [{
+                model: Subreddit,
+                as: 'relatedSubreddits',
+                where: {
+                    url: {
+                        [Op.and]: {
+                            [Op.in]: req.body.subscribed,
+                            [Op.notIn]: req.body.blacklist
+                        }
+                    }
+                }
+            }]
+        }).then(results => {
+            subreddits = results;
+            return Subreddit.findAll({
+                where: {
+                    url: {
+                        [Op.and]:{
+                            [Op.notIn]: req.body.blacklist,
+                            [Op.notIn]: req.body.subscribed
+                        }
+                    }
+                },
+                include: [{
+                    model: Tag,
+                    where: {
+                        name: {
+                            [Op.in]: req.body.tags
+                        }
+                    }
+                }]
+            })
+        }).then(results => {
+
+            results.forEach(subreddit => {
+                if (!subreddits.includes(subreddit)) {
+                    subreddits.push(subreddit);
+                }
+            })
+
+            subreddits.forEach(subreddit => {
+                if (heap.size() >= req.body.maxRecommendations) {
+                    heap.pushpop(subreddit);
+                } else {
+                    heap.push(subreddit);
+                }
             });
 
-            for (index in parsedSubreddits) {
-                // heap will never exceed maxRecommendations size for maximum efficiency of algorithm
-                if (heap.size() >= req.body.maxRecommendations) {
-                    heap.pushpop(parsedSubreddits[index]);
-                } else {
-                    heap.push(parsedSubreddits[index]);
-                }
-                if (index % progressBarScale === 0) {
-                    bar.tick();
-                }
-            }
             var output = [];
-            for (index = 0; index < req.body.maxRecommendations; index++) {
-                if (heap.empty()) {
-                    break;
-                }
-                var subreddit = heap.pop();
-                output.push({
-                    subreddit: subreddit.url,
-                    rank: req.body.maxRecommendations - index
-                });
-            }
-            // Reverse the output so that the best recommendations come first.
-            output.reverse();
 
-            res.status(200);
-            res.json(output);
+            // push the top of the heap into output
+            var i = 0
+            while(!heap.empty() && i < req.body.maxRecommendations){
+                output.push(heap.pop());
+                i++;
+            }
+
+
+            res.status(200).json(output);
         }).catch(next);
     } else {
-        res.status(422).send('Unprocessable Entity')
+        res.status(422).send("Unprocessable Entity");
     }
 });
 

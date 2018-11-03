@@ -1,6 +1,5 @@
 const regex = require('./regexModule');
 
-// Depricated
 function cleanDescriptionForLanguageSearch(description) {
     return description
         .replace(/(?:https?|ftp):\/\/[\n\S]+/g, ' ') // Remove all URLs

@@ -12,7 +12,7 @@ router.use(function(req, res, next) {
 // responds with all tags in the database
 // This is served to users so they can add existing tags to their prefered tags.
 router.get('/', function(req, res, next) {
-    Tag.find({}).exec().then(tags => {
+    Tag.findAll({}).then(tags => {
         res.status(200).json(tags);
     }).catch(next);
 });

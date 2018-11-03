@@ -1,16 +1,12 @@
-//this model quantifies the relationship between collections of subreddits and rates them;
-const mongoose = require('mongoose');
-const Schema = mongoose.Schema;
+const db = require('../db');
+const DataTypes = db.Sequelize;
 
-//  define the Tag schema
-const tagSchema = new Schema({
-    name: {
-        type: String,
-        required: true,
-        unique: true
-    }
+//  Defines the Tag Schema
+
+module.exports = db.define('tag', {
+  name: {
+    type: DataTypes.STRING,
+    allowNull: false,
+    unique: true
+  }
 });
-
-//  Creates the Tag model in the database
-//  Also exports the Tag object for other files to use it
-module.exports = mongoose.model('Tag', tagSchema);
