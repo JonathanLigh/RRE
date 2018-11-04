@@ -1,8 +1,12 @@
 node_modules
 build
+npm-debug.log
+.DS_Store
 /bin/
 /server/crawler/parsed_subreddits/
 /server/crawler/state.json
+build/
+dev/
 package-lock.json
 .DS_Store
 .nyc_output
@@ -13,3 +17,7 @@ state.json~
 /server/*.csr
 /server/*.key
 /server/*.crt
+*.zip
+*.crx
+*.pem
+update.xml
