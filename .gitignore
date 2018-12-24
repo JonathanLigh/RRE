@@ -21,3 +21,5 @@ state.json~
 *.crx
 *.pem
 update.xml
+.env
+
