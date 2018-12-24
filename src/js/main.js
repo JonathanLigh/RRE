@@ -11,18 +11,18 @@ class App extends React.Component {
   }
 }
 
-chrome.runtime.onMessage.listener((request, sender, response) => {
+chrome.runtime.onMessage.addListener((request, sender, response) => {
   if(request.injectApp) {
     injectApp();
     response({
       startedExtension: true,
     });
   }
-})
+});
 
 function injectApp() {
   const newDiv = document.createElement("div");
-  newDiv.setAttributes("id", "chromeExtensionReactApp");
+  newDiv.setAttribute("id", "chromeExtensionReactApp");
   document.body.appendChild(newDiv);
-  ReactDom.render(<App />, newDiv);
+  ReactDOM.render(<App />, newDiv);
 }
