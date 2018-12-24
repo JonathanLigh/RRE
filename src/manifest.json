@@ -2,12 +2,12 @@
   "manifest_version": 2,
 
   "name": "RRE",
-  "description": "",
+  "description": "A reddit extension for finding subreddit recommendations",
   "version": "1.1",
 
   "browser_action": {
-    "default_icon": "src/img/rre-icon-128.png",
-    "default_popup": "src/popup.html"
+    "default_icon": "img/rre-icon-128.png",
+    "default_popup": "popup.html"
   },
 
   "permissions": [
@@ -18,7 +18,7 @@
   "content_scripts": [
     {
       "matches": ["http://*/*", "https://*/*"],
-      "js": ["src/build/main.js"]
+      "js": ["build/main.js"]
     }
   ]
 }
