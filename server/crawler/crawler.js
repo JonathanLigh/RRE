@@ -48,6 +48,7 @@ var wordFilter = [];
 // this hashmap will contain recently viseted subreddits within that cralwer scope
 // maps subreddit name -> date last updated
 var visitedTable = new Map();
+var discoveredQ = new Queue();
 
 //
 var srReader = new lr('./srlist/allsubreddits.txt');
@@ -59,6 +60,12 @@ srReader.on('error', function(err) {
 srReader.on('line', function(line) {
     //reads line inits crawl
     //main logic block
+    var subreddit = normalizeURL(line);
+    // if not in visitedTable or not updated in a week.
+    if (!visitedTable.has(subreddit) || Date.now() - visitedTable.get(subreddit) > 604800000)) {
+        visitedTable.set(subreddit, Date.now());
+        // parse subreddit function
+    }
 });
 
 srReader.on('end', function() {
@@ -219,6 +226,16 @@ function addSubredditToVisted(subredditData, visitedTable) {
         console.log(chalk.red("attempted to add a subreddit without data to the list of visited"));
     }
 }
+
+/* plan for new parsesubreddit function:
+    - visits sr page
+    - parse page data
+    - checks for related subreddits
+    - adds adds those subreddits to queue if not visited
+    - add relational data to db
+    - while queue is not empty repeat
+*/
+
 
 function parseSubreddit(subredditData, visitedTable) {
     if (!subredditData) {
