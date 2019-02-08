@@ -19,7 +19,13 @@ const Op = require("sequelize").Op;
 const htmlToJSON = require('html-to-json');
 //  This is the message that appears as the reponse for any NSFW page
 const nsfwMessage = 'You must be at least eighteen years old to view this content. Are you over eighteen and willing to see adult content?';
-
+/*
+Things to do:
+- global hashmap with keys -> date of last update
+- storage of hashmap into db
+- convert all of crawler to that construction
+- if subreddit in hashmap and last visited a month ago or longer => visit again
+*/
 
 var batchSize = 1;
 
@@ -38,8 +44,8 @@ var state = {
 // our trainable wordfilter
 var wordFilter = [];
 
-// this hashset will contain recently viseted subreddits within that cralwer scope
-var visitedTable = new Hashset();
+// this hashmap will contain recently viseted subreddits within that cralwer scope
+var visitedTable = new Map();
 
 function normalizeURL(url) {
     return url.replace('/r/','').replace('/','');
