@@ -2,6 +2,7 @@ const Subreddit = require('./subreddit');
 const Tag = require('./tag');
 const Relation = require('./relation');
 const TagRelation = require('./tagRelation');
+const Crawled = require('./crawled');
 
 Subreddit.belongsToMany(Subreddit, {as: 'relatedSubreddits', through: 'relation', foreignKey: 'subredditId', otherKey: 'relatedSubredditId'});
 Tag.belongsToMany(Subreddit, {through: 'tagRelation'});
@@ -12,5 +13,6 @@ module.exports = {
     Subreddit: Subreddit,
     Tag: Tag,
     Relation: Relation,
-    TagRelation: TagRelation
+    TagRelation: TagRelation,
+    Crawled: Crawled
 };

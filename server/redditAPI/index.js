@@ -21,15 +21,6 @@ const rAPI = new snoowrap({
   password: process.env.REDDIT_PASS
 });
 
-const CrawlerAPI = new snoowrap({
-  userAgent: process.env.CRAWLERUSER_AGENT,
-  clientId: process.env.CRAWLERCLIENT_ID,
-  clientSecret: process.env.CRAWLERCLIENT_SECRET,
-  username: process.env.REDDIT_USERNAME,
-  password: process.env.REDDIT_PASS
-});
-
 module.exports = {
-  redditAPI: rAPI,
-  CrawlerAPI: CrawlerAPI
+  redditAPI: rAPI
 }

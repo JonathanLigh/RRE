@@ -8,17 +8,20 @@ const regex = require('./regexModule');
 const descriptionParser = require('./descriptionParser');
 const languageFilter = require('./languageFilter');
 const models = require('../db/models');
-const reddit = require('../redditAPI').CrawlerAPI;
+// const reddit = require('../redditAPI').CrawlerAPI;
 const Subreddit = models.Subreddit;
 const Tag = models.Tag;
 const Relation = models.Relation;
 const TagRelation = models.TagRelation
-const Hashset = require('hashset');
+const Crawled = models.Crawled;
 const Promise = require("bluebird");
 const Op = require("sequelize").Op;
 const htmlToJSON = require('html-to-json');
+const lr = require('line-by-line');
+
 //  This is the message that appears as the reponse for any NSFW page
 const nsfwMessage = 'You must be at least eighteen years old to view this content. Are you over eighteen and willing to see adult content?';
+
 /*
 Things to do:
 - global hashmap with keys -> date of last update
@@ -30,8 +33,6 @@ Things to do:
 var batchSize = 1;
 
 var logging = false;
-var recusiveLogging = false;
-
 var testingMode = false;
 var triggerExit = false;
 
@@ -45,7 +46,25 @@ var state = {
 var wordFilter = [];
 
 // this hashmap will contain recently viseted subreddits within that cralwer scope
+// maps subreddit name -> date last updated
 var visitedTable = new Map();
+
+//
+var srReader = new lr('./srlist/allsubreddits.txt');
+srReader.on('error', function(err) {
+    //if Error
+    Console.log(chalk.red(err));
+});
+
+srReader.on('line', function(line) {
+    //reads line inits crawl
+    //main logic block
+});
+
+srReader.on('end', function() {
+    //All lines ready file is closed now.
+    Console.log(chalk.yellow("all known subreddits read from txt file"));
+});
 
 function normalizeURL(url) {
     return url.replace('/r/','').replace('/','');

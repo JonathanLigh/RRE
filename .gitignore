@@ -22,4 +22,4 @@ state.json~
 *.pem
 update.xml
 .env
-
+/server/crawler/srlist
