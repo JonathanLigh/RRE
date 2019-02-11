@@ -62,7 +62,7 @@ srReader.on('line', function(line) {
     //main logic block
     var subreddit = normalizeURL(line);
     // if not in visitedTable or not updated in a week.
-    if (!visitedTable.has(subreddit) || Date.now() - visitedTable.get(subreddit) > 604800000)) {
+    if (!visitedTable.has(subreddit) || Date.now() - visitedTable.get(subreddit) > 604800000) {
         visitedTable.set(subreddit, Date.now());
         // parse subreddit function
     }
