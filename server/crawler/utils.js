@@ -4,8 +4,8 @@ module.exports = {
     getJSON: function(url) {
 
     },
-    normalizeURL: function() {
-        return url.replace('/r/','').replace('/','');
+    extractSRName: function(url) {
+        return url.replace('https://www.reddit.com/r/','').replace('/','');
     },
     loadStateJSON: function() {
 

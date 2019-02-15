@@ -9,7 +9,7 @@ const descriptionParser = require('./descriptionParser');
 const languageFilter = require('./languageFilter');
 const models = require('../db/models');
 const utils = require('./utils');
-const r = require('../redditAPI').CrawlerAPI;
+const r = require('../redditAPI').redditAPI;
 const Subreddit = models.Subreddit;
 const Tag = models.Tag;
 const Relation = models.Relation;
@@ -37,11 +37,12 @@ var testingMode = false;
 var triggerExit = false;
 
 var statePath = "state.json";
+// default state
 var state = {
     // this hashmap will contain recently viseted subreddits within that cralwer scope
     // maps subreddit name -> date last updated
     visited: new Map(),
-    discoveredQ: new Queue(),
+    discoveredQ: [],
     lastLineRead: 0
 };
 
@@ -49,43 +50,36 @@ var state = {
 var wordFilter = [];
 
 // reads file containing list of all subreddits
-var srReader = new lr('./srlist/allsubreddits.txt');
+var srReader = new lr('server/crawler/srlist/allsubreddits.txt');
 srReader.on('error', function(err) {
     //if Error
-    Console.log(chalk.red(err)); // log error
+    console.log(chalk.red(err)); // log error
 });
 
 srReader.on('line', function(line) {
-    // reads line inits crawl
-    // main logic block
-    var subreddit = utils.normalizeURL(line);
+    return line;
+}).then(url => {
     // if not in visitedTable or not updated in a week
-    if (!state.visitedTable.has(subreddit) || Date.now() - state.visitedTable.get(subreddit) > 604800000) {
+    if (!state.visited.has(url) || Date.now() - state.visited.get(url) > 604800000) {
         // add to visited table
-        state.visitedTable.set(subreddit, Date.now());
+        state.visited.set(url, Date.now());
         // parse subreddit function
-        state.discoveredQ.enqueue(subreddit);
-        while (!state.discoveredQ.isEmpty()) {
-            var curr = state.discoveredQ.dequeue();
-            r.getSubreddit(curr).fetch().then((data) => {
-                console.log(data);
-                // parse subreddit
-                // add related subreddits to queue if not on visitedTable
-            }).catch(err => {
-                console.log(chalk.red("Fatal Error in getSubreddit:\n") + chalk.yellow(err));
-                saveStateSync();
-                process.exit(1);
-            });
+        state.discoveredQ.push(url);
+        console.log(chalk.blue(url));
+        while (state.discoveredQ.length > 0) {
+            var curr = state.discoveredQ.shift();
+            // synchronously make asyc get calls for subreddit urls
+            // parse returned html info
+            // add info to database
+            // add discovered subreddits to state's discoveredQ if not already on state's visited
         }
     }
 });
 
 srReader.on('end', function() {
     //All lines ready file is closed now.
-    Console.log(chalk.yellow("all known subreddits read from txt file"));
+    console.log(chalk.yellow("all known subreddits read from txt file"));
 });
-
-
 
 function get_json(url, callback) {
     console.log(`Querying ${url}`);
@@ -96,7 +90,6 @@ function get_json(url, callback) {
         });
 
         res.on('end', function() {
-            // console.log(chalk.magenta(body));
             var response = JSON.parse(body);
             callback(response);
         });
@@ -109,8 +102,6 @@ function get_json(url, callback) {
 function getJSONFromSubreddit(url, callback) {
 
     console.log('Querying ' + subredditURLBuilder(url));
-    //  must find a work around until reddit approves the personal use script for acess to their api
-    // reddit.getSubreddit(normalizeURL(url)).fetch().then(console.log);
 
     https.get(subredditURLBuilder(url), function(res) {
         var body = '';
