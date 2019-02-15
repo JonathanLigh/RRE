@@ -8,12 +8,12 @@ const regex = require('./regexModule');
 const descriptionParser = require('./descriptionParser');
 const languageFilter = require('./languageFilter');
 const models = require('../db/models');
-// const reddit = require('../redditAPI').CrawlerAPI;
+const utils = require('./utils');
+const r = require('../redditAPI').CrawlerAPI;
 const Subreddit = models.Subreddit;
 const Tag = models.Tag;
 const Relation = models.Relation;
 const TagRelation = models.TagRelation
-const Crawled = models.Crawled;
 const Promise = require("bluebird");
 const Op = require("sequelize").Op;
 const htmlToJSON = require('html-to-json');
@@ -38,33 +38,45 @@ var triggerExit = false;
 
 var statePath = "state.json";
 var state = {
-    after: "",
-    maxDepthReached: 0,
-    maxDepthSubreddit: ""
+    // this hashmap will contain recently viseted subreddits within that cralwer scope
+    // maps subreddit name -> date last updated
+    visited: new Map(),
+    discoveredQ: new Queue(),
+    lastLineRead: 0
 };
+
 // our trainable wordfilter
 var wordFilter = [];
 
-// this hashmap will contain recently viseted subreddits within that cralwer scope
-// maps subreddit name -> date last updated
-var visitedTable = new Map();
-var discoveredQ = new Queue();
-
-//
+// reads file containing list of all subreddits
 var srReader = new lr('./srlist/allsubreddits.txt');
 srReader.on('error', function(err) {
     //if Error
-    Console.log(chalk.red(err));
+    Console.log(chalk.red(err)); // log error
 });
 
 srReader.on('line', function(line) {
-    //reads line inits crawl
-    //main logic block
-    var subreddit = normalizeURL(line);
-    // if not in visitedTable or not updated in a week.
-    if (!visitedTable.has(subreddit) || Date.now() - visitedTable.get(subreddit) > 604800000) {
-        visitedTable.set(subreddit, Date.now());
+    // reads line inits crawl
+    // main logic block
+    var subreddit = utils.normalizeURL(line);
+    // if not in visitedTable or not updated in a week
+    if (!state.visitedTable.has(subreddit) || Date.now() - state.visitedTable.get(subreddit) > 604800000) {
+        // add to visited table
+        state.visitedTable.set(subreddit, Date.now());
         // parse subreddit function
+        state.discoveredQ.enqueue(subreddit);
+        while (!state.discoveredQ.isEmpty()) {
+            var curr = state.discoveredQ.dequeue();
+            r.getSubreddit(curr).fetch().then((data) => {
+                console.log(data);
+                // parse subreddit
+                // add related subreddits to queue if not on visitedTable
+            }).catch(err => {
+                console.log(chalk.red("Fatal Error in getSubreddit:\n") + chalk.yellow(err));
+                saveStateSync();
+                process.exit(1);
+            });
+        }
     }
 });
 
@@ -73,9 +85,7 @@ srReader.on('end', function() {
     Console.log(chalk.yellow("all known subreddits read from txt file"));
 });
 
-function normalizeURL(url) {
-    return url.replace('/r/','').replace('/','');
-}
+
 
 function get_json(url, callback) {
     console.log(`Querying ${url}`);
@@ -157,7 +167,7 @@ function getSubredditMetaData(url, visitedTable) {
     })
 };
 
-//  The top level entry point into the general crawling of subreddits
+// The top level entry point into the general crawling of subreddits
 function getReddits(after) {
     return new Promise((resolve, reject) => {
         get_json(buildURL(after, batchSize), function(response) {
@@ -471,10 +481,10 @@ function continueSearch(after) {
     });
 }
 
-function loadStateJSON(callback) {
+function loadStateJSON() {
     fs.readFile(statePath, (err, data) => {
         if (err) {
-            console.log("state.json file not initialized");
+            console.log(chalk.red("state.json file not initialized"));
         } else {
             if (data.byteLength === 0) {
                 console.log("state.json file is empty");
@@ -482,14 +492,14 @@ function loadStateJSON(callback) {
                 state = JSON.parse(data);
             }
         }
-        callback(state.after);
     });
 }
 
+// TODO: have this saves new state of crawler to fs
 function saveStateSync() {
     if (!testingMode) {
         fs.writeFileSync(statePath, JSON.stringify(state));
-        console.log("    Crawler terminated, current state saved as " + state.after);
+        console.log("    Crawler terminated, current state saved");
     }
 }
 
