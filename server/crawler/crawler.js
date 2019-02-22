@@ -1,7 +1,8 @@
 'use strict'
 require('dotenv').config()
-const fs = require("fs")
+const fs = require('fs');
 const https = require('follow-redirects').https;
+const request = require('sync-request');
 const exitHook = require('exit-hook');
 const chalk = require('chalk');
 const regex = require('./regexModule');
@@ -57,18 +58,23 @@ srReader.on('error', function(err) {
 });
 
 srReader.on('line', function(line) {
-    return line;
-}).then(url => {
     // if not in visitedTable or not updated in a week
-    if (!state.visited.has(url) || Date.now() - state.visited.get(url) > 604800000) {
+    if (!state.visited.has(line) || Date.now() - state.visited.get(line) > 604800000) {
         // add to visited table
-        state.visited.set(url, Date.now());
-        // parse subreddit function
-        state.discoveredQ.push(url);
-        console.log(chalk.blue(url));
+        state.visited.set(line, Date.now());
+        state.discoveredQ.push(line);
+        
         while (state.discoveredQ.length > 0) {
-            var curr = state.discoveredQ.shift();
+            let curr = state.discoveredQ.shift();
+            console.log(chalk.green('now Querying... ' + curr));
             // synchronously make asyc get calls for subreddit urls
+            // normal req
+            let res = request('GET', curr);
+            console.log(chalk.magenta(res.getBody()));
+            // if over18 sr then req again with snoowrap
+                // if not possible wait 60 seconds for more req access with snoowrap
+
+            
             // parse returned html info
             // add info to database
             // add discovered subreddits to state's discoveredQ if not already on state's visited
@@ -80,6 +86,7 @@ srReader.on('end', function() {
     //All lines ready file is closed now.
     console.log(chalk.yellow("all known subreddits read from txt file"));
 });
+
 
 function get_json(url, callback) {
     console.log(`Querying ${url}`);
@@ -99,7 +106,7 @@ function get_json(url, callback) {
 }
 
 // much like get_json, but requires more processing
-function getJSONFromSubreddit(url, callback) {
+async function getJSONFromSubreddit(url, callback) {
 
     console.log('Querying ' + subredditURLBuilder(url));
 
