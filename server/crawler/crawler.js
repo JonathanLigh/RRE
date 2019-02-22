@@ -63,19 +63,19 @@ srReader.on('line', function(line) {
         // add to visited table
         state.visited.set(line, Date.now());
         state.discoveredQ.push(line);
-        
+
         while (state.discoveredQ.length > 0) {
             let curr = state.discoveredQ.shift();
-            console.log(chalk.green('now Querying... ' + curr));
-            // synchronously make asyc get calls for subreddit urls
-            // normal req
-            let res = request('GET', curr);
-            console.log(chalk.magenta(res.getBody()));
-            // if over18 sr then req again with snoowrap
-                // if not possible wait 60 seconds for more req access with snoowrap
-
-            
-            // parse returned html info
+            try { // google: 'js turn async code into sync' to continue
+                let resJSON = await r.getSubreddit(utils.extractSRName(curr)).fetch().toJSON();
+                console.log(chalk.green(resJSON));
+            } catch (err) {
+                console.log(chalk.red(err));
+            }
+            // TODO:
+            // parse resJSON
+                // parse content of subreddit
+                // related subreddits
             // add info to database
             // add discovered subreddits to state's discoveredQ if not already on state's visited
         }
